@@ -101,6 +101,12 @@ const sidebars: SidebarsConfig = {
 
     // ── Cross-cutting ────────────────────────────────────────────────────
     {
+      type:  'doc',
+      id:    'api-reference',
+      label: 'API Reference',
+    },
+
+    {
       type:  'category',
       label: 'Webhooks',
       link:  { type: 'doc', id: 'webhooks/index' },

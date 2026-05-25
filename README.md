@@ -1,41 +1,59 @@
-# Website
+# NetworkCore Docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+Public developer documentation for the NetworkCore Hub, hosted at
+**[docs.networkcore.org](https://docs.networkcore.org)**.
 
-## Installation
+NetworkCore is a clearing + settlement platform that ships EV charging as
+its first vertical via a spec-compliant **OCPI 2.2.1** hub. These docs are
+for developers integrating against the hub — CPOs, CSMS, Distribution
+Partners, and accounting / finance systems.
+
+## What's where
+
+- [`docs/`](docs/) — every page in the site, as MDX
+- [`sidebars.ts`](sidebars.ts) — navigation structure
+- [`docusaurus.config.ts`](docusaurus.config.ts) — site config (brand, plugins, navbar)
+- [`src/css/custom.css`](src/css/custom.css) — design tokens mapped from the hub's `/shared/tokens.css`
+- [`static/openapi.yaml`](static/openapi.yaml) — OpenAPI 3.0 spec (synced from the hub repo)
+- [`static/img/`](static/img/) — favicon + brand mark (synced from the hub repo)
+
+## Local development
 
 ```bash
-yarn
+npm install
+npm start        # local dev server on http://localhost:3000
+npm run build    # static build into /build
+npm run serve    # serve the built /build locally
 ```
 
-## Local Development
+The dev server hot-reloads on file save. Most page edits are MDX (Markdown
+with React components), so the editing experience is just writing prose.
 
-```bash
-yarn start
-```
+## Contributing
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+Found something wrong, unclear, or out of date?
 
-## Build
+- **Open an issue** — fastest if it's a question or a bug report
+- **Open a PR** — every page has an "Edit this page" link that jumps you straight to the source on GitHub
 
-```bash
-yarn build
-```
-
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+External contributions welcome. The site is intentionally public so
+partner devs can fix mistakes they notice while integrating.
 
 ## Deployment
 
-Using SSH:
+The site auto-deploys to Vercel on every push to `main`. Production lives at
+`docs.networkcore.org` (mapped via Vercel custom domain, DNS at IONOS).
 
-```bash
-USE_SSH=true yarn deploy
-```
+## Source of truth
 
-Not using SSH:
+The OpenAPI spec (`static/openapi.yaml`) is **synced from** the hub repo
+(`NetworkCoreAG/Platform/public/docs/openapi.yaml`). Don't edit it here —
+change it in the hub repo and re-sync.
 
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
+A future GitHub Action will automate that sync. For now it's a manual
+`cp` whenever the hub spec changes.
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+## License
+
+Docs content: © NetworkCore AG. Code samples in the docs are CC0 — copy them
+freely into your integration.

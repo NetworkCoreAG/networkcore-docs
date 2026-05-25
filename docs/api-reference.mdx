@@ -1,0 +1,52 @@
+---
+title: API Reference
+description: "Endpoint reference for the NetworkCore Hub — OCPI 2.2.1 + partner APIs."
+---
+
+# API Reference
+
+The full API reference is published as an **OpenAPI 3.0 specification** at
+[/openapi.yaml](/openapi.yaml).
+
+:::info Inline Redoc rendering — coming soon
+We're working on inline rendering of the OpenAPI spec on this page (via
+[Redocusaurus](https://github.com/rohit-gohri/redocusaurus)). The current
+version of the Redoc renderer trips on a small number of markdown patterns
+in our description fields; we'll re-enable inline rendering once the spec
+is cleaned up. In the meantime, use one of the options below.
+:::
+
+## How to browse the reference
+
+### Option 1: Raw OpenAPI spec
+
+The spec lives at [`docs.networkcore.org/openapi.yaml`](/openapi.yaml). Drop it into any OpenAPI viewer:
+
+- **[Swagger Editor](https://editor.swagger.io/)** — paste the URL `https://docs.networkcore.org/openapi.yaml` into the editor
+- **[Stoplight Studio](https://stoplight.io/studio)** — open-source desktop client that renders OpenAPI nicely
+- **[Insomnia](https://insomnia.rest/)** or **[Postman](https://www.postman.com/)** — both import OpenAPI directly to generate request collections
+
+### Option 2: Legacy integration guide (live)
+
+The hub's existing integration guide at
+[hub.networkcore.org/docs/ocpi-integration.html](https://hub.networkcore.org/docs/ocpi-integration.html)
+remains live and covers OCPI 2.2.1 with full request/response examples for
+every CPO push flow and DP pull flow.
+
+### Option 3: Read the source
+
+The hub is a closed-source product but the route handlers + OpenAPI spec are
+the contract you integrate against. If you're stuck, email
+[partner@networkcore.org](mailto:partner@networkcore.org) — we typically
+respond within one business day.
+
+## Spec versioning
+
+| Version | Status | Coverage |
+|---|---|---|
+| **OCPI 2.2.1** | Stable | Full sender + receiver sides for all required modules + tariffs |
+| **Hub APIs `v1`** (`/portal/v1/*`, `/dp/v1/*`, `/driver/v1/*`) | Stable | All endpoints under URL-versioned namespaces |
+| **OCPI 2.3** | Not implemented | Planned post-Mexico-launch |
+
+We publish breaking changes in the [Changelog](/changelog) at least 90 days
+before they take effect.

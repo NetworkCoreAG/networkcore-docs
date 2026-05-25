@@ -34,7 +34,14 @@ const config: Config = {
 
   // 'warn' during scaffold; flip to 'throw' once content stabilises
   onBrokenLinks:         'warn',
-  onBrokenMarkdownLinks: 'warn',
+
+  // Migrate the markdown-link config to the new nested form (Docusaurus 3.7+
+  // moved this out of the top-level config; v4 will hard-remove the old shape).
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
 
   i18n: { defaultLocale: 'en', locales: ['en'] },
 
@@ -62,21 +69,20 @@ const config: Config = {
         },
       } satisfies Preset.Options,
     ],
-    [
-      'redocusaurus',
-      {
-        specs: [
-          {
-            id:    'hub-api',
-            spec:  'static/openapi.yaml',
-            route: '/api-reference/',
-          },
-        ],
-        theme: {
-          primaryColor: '#1A3554',     // navy gradient endpoint — primary brand
-        },
-      },
-    ],
+    // Redocusaurus preset temporarily disabled — known marked.js incompat
+    // when rendering certain markdown patterns in OpenAPI description fields.
+    // Tracked at: https://github.com/redocly/redoc/issues (similar reports).
+    // For Phase 1 we ship a placeholder /api-reference page that links to
+    // the raw spec; the auto-rendered version comes back online after the
+    // spec is cleaned up or the Redocusaurus version is bumped.
+    //
+    // [
+    //   'redocusaurus',
+    //   {
+    //     specs: [{ id: 'hub-api', spec: 'static/openapi.yaml', route: '/api-reference/' }],
+    //     theme: { primaryColor: '#1A3554' },
+    //   },
+    // ],
   ],
 
   // ── Theme ─────────────────────────────────────────────────────────────────
@@ -114,7 +120,7 @@ const config: Config = {
           position: 'left',
         },
         {
-          to:       '/api-reference/',
+          to:       '/api-reference',
           label:    'API Reference',
           position: 'left',
         },
@@ -138,7 +144,7 @@ const config: Config = {
           title: 'Docs',
           items: [
             { label: 'Getting Started', to: '/getting-started' },
-            { label: 'API Reference',   to: '/api-reference/' },
+            { label: 'API Reference',   to: '/api-reference' },
             { label: 'Webhooks',        to: '/webhooks' },
             { label: 'Sandbox',         to: '/sandbox' },
           ],
