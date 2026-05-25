@@ -32,6 +32,7 @@ const sidebars: SidebarsConfig = {
       collapsed: false,
       items: [
         'getting-started/concepts',
+        'getting-started/onboarding',
         'getting-started/auth',
         'getting-started/sandbox',
         'getting-started/errors',
@@ -49,6 +50,8 @@ const sidebars: SidebarsConfig = {
       link:  { type: 'doc', id: 'ev-charging/index' },
       collapsed: false,
       items: [
+        // OCPI protocol discovery — applies to CPOs, CSMS, DPs, Hosts alike
+        'ev-charging/discovery-endpoints',
         // Charging software section — CPOs + CSMS share the same OCPI surface
         {
           type:  'category',
@@ -66,6 +69,13 @@ const sidebars: SidebarsConfig = {
             'ev-charging/charging-software/settlement',
             'ev-charging/charging-software/chargebacks',
           ],
+        },
+        // Private Hosts — operationally CPOs, commercially different
+        {
+          type:  'category',
+          label: 'For Private Hosts',
+          link:  { type: 'doc', id: 'ev-charging/private-hosts/index' },
+          items: [],
         },
         // Distribution partners section — pull side
         {
