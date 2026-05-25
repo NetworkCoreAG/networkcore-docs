@@ -1,10 +1,39 @@
 ---
 title: Reconciliation
-description: "Matching hub-side records against the bank statement."
+description: "Match hub records against bank statements and your books."
+sidebar_position: 3
 ---
 
 # Reconciliation
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+The day-to-day reconciliation cycle:
+
+1. **Daily**: pull `/portal/v1/cpo/settlement?date_from=<yesterday>` + match each batch's `wire_reference` against the bank statement
+2. **Weekly**: pull all CDRs for the period via OCPI `/emsp/cdrs?date_from=…` and confirm every CDR has a corresponding clearing record in the settlement reports
+3. **Monthly**: export the `/export.zip` bundles and import into your ERP
+
+## Drift detection
+
+If you see a wire on your bank statement without a matching batch, or a
+batch without a matching wire:
+
+- Email [partner@networkcore.org](mailto:partner@networkcore.org) with the
+  bank statement line item
+- We'll match it within one business day
+
+Most drift is one of two causes:
+
+1. **Wire crossed a midnight UTC boundary** — sometimes the bank dates differently than we do
+2. **Batched-vs-individual** — your bank may consolidate multiple batches into one wire if they hit the same day
+
+## CDR ↔ Clearing record reconciliation
+
+Every cleared CDR has exactly one clearing record. To audit:
+
+```http
+GET /portal/v1/cpo/clearing?date_from=2026-01-01&date_to=2026-01-31
+```
+
+The response includes each clearing record's `cdr_id`. Cross-reference
+against the OCPI CDR list from `/emsp/cdrs`. Any CDR without a clearing
+record means the clearing pipeline failed for that session — escalate.

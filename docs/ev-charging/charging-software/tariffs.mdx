@@ -1,10 +1,71 @@
 ---
 title: Tariffs
-description: "Locked-tariff model — price at the charger must equal price on the statement."
+description: "The locked-tariff model — price at the charger equals price on the statement, enforced architecturally."
+sidebar_position: 7
 ---
 
 # Tariffs
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+NetworkCore enforces **price at the charger = price on the statement**. The
+mechanism is the locked-tariff model: at the moment a session starts, the
+tariff in effect is snapshotted to a `locked_tariffs` row. The CDR posted
+when the session ends is validated against that snapshot — not against the
+current tariff.
+
+This means:
+
+- You can update a tariff mid-session and the in-progress session is
+  unaffected. The next session gets the new tariff.
+- You can never accidentally bill a driver for a tariff they didn't see when
+  they plugged in.
+- Drift > 5% between CDR `total_cost` and `locked_tariff × energy_kwh` raises a `PRICE_DRIFT` fraud flag (mechanism #09 — Public price enforcement).
+
+## Push a tariff
+
+```http
+PUT /ocpi/2.2.1/cpo/tariffs/MX/CPX/TARIFF-DEFAULT
+Authorization: Token TOKEN_C
+Content-Type: application/json
+```
+
+```json
+{
+  "id":           "TARIFF-DEFAULT",
+  "country_code": "MX",
+  "party_id":     "CPX",
+  "currency":     "MXN",
+  "elements": [
+    {
+      "price_components": [
+        { "type": "ENERGY", "price": 6.50, "step_size": 1 }
+      ]
+    }
+  ],
+  "last_updated": "2026-04-29T08:00:00Z"
+}
+```
+
+## OCPI 2.2.1 PriceComponent types
+
+| Type | Unit | Notes |
+|---|---|---|
+| `ENERGY` | per kWh | The most common shape |
+| `TIME` | per hour | Charges by session duration |
+| `FLAT` | per session | Fixed connection fee |
+| `PARKING_TIME` | per hour, post-charge | Idle fee after the car stops charging |
+
+You can combine multiple `price_components` in one element to model complex
+rates (e.g. `0.50 MXN` connection fee + `6.50 MXN/kWh` energy).
+
+## Restrictions (time windows, location filters)
+
+OCPI tariff `restrictions` are supported — use them to model peak/off-peak
+windows, weekday-only rates, etc. See the OCPI 2.2.1 spec §11.4 for the
+restriction object schema; the hub stores and propagates them verbatim.
+
+## Linking tariffs to connectors
+
+Every connector you push (under a Location → EVSE → Connector) can declare
+`tariff_ids: ["TARIFF-DEFAULT", "TARIFF-PEAK"]`. The hub locks the **first
+matching tariff at the moment the session starts** (matching = applicable
+based on restrictions).

@@ -1,10 +1,85 @@
 ---
 title: Signature verification
-description: "Verify every webhook is genuinely from NetworkCore."
+description: "Verify every webhook is genuinely from NetworkCore using HMAC-SHA256 over the body."
+sidebar_position: 1
 ---
 
 # Signature verification
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+Every webhook the hub sends carries an `X-NC-Signature` header — an
+HMAC-SHA256 of the raw request body, signed with your subscription's shared
+secret.
+
+**Always verify the signature before processing.** A failed verification
+means the request didn't come from us — discard it.
+
+## Header shape
+
+```http
+X-NC-Signature:   sha256=<hex digest of HMAC-SHA256(secret, raw_body)>
+X-NC-Timestamp:   2026-04-29T11:00:05.123Z
+X-NC-Event:       session.settled
+X-NC-Delivery-ID: uuid (unique per delivery attempt)
+```
+
+## Where the secret comes from
+
+When you create a webhook endpoint in the partner portal, you receive a
+**signing secret** once. Store it server-side; don't expose it to
+client-side code.
+
+## Verification example — Node.js
+
+```js
+import crypto from 'crypto';
+
+function verifyWebhook(rawBody, signatureHeader, secret) {
+  const [_, provided] = signatureHeader.split('=');
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(provided),
+    Buffer.from(expected),
+  );
+}
+
+app.post('/webhooks/networkcore', express.raw({ type: 'application/json' }), (req, res) => {
+  const ok = verifyWebhook(req.body, req.get('X-NC-Signature'), process.env.NC_WEBHOOK_SECRET);
+  if (!ok) return res.status(401).send('bad signature');
+
+  const event = JSON.parse(req.body.toString());
+  // process event...
+  res.status(200).send('ok');
+});
+```
+
+## Verification example — Python
+
+```python
+import hmac, hashlib
+
+def verify_webhook(raw_body: bytes, signature_header: str, secret: str) -> bool:
+    _, provided = signature_header.split('=', 1)
+    expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(provided, expected)
+```
+
+## Constant-time comparison matters
+
+Never compare signatures with `==` — that's vulnerable to timing attacks.
+Use `crypto.timingSafeEqual` (Node), `hmac.compare_digest` (Python), or
+your language's equivalent.
+
+## Replay protection
+
+The `X-NC-Timestamp` header is included in the signature payload to prevent
+replay attacks. Reject any webhook where `|now - X-NC-Timestamp| > 5 minutes`.
+
+## Delivery IDs
+
+`X-NC-Delivery-ID` is unique per delivery **attempt**. Two attempts for the
+same event (after a retry) have the same `event_id` in the body but
+different `X-NC-Delivery-ID` values. Use the `event_id` (in the body) for
+your idempotency key.

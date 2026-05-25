@@ -1,10 +1,51 @@
 ---
 title: Refunds & disputes
-description: "Filing a refund + handling a partner-side dispute."
+description: "File a refund or dispute on a driver's behalf and track resolution."
+sidebar_position: 8
 ---
 
 # Refunds & disputes
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+When a driver claims they were overcharged, charged for a service they
+didn't receive, or the EVSE malfunctioned — you file a dispute via the
+partner portal API. Resolution is driven by NetworkCore ops in coordination
+with the CPO.
+
+## File a dispute
+
+```http
+POST /portal/v1/disputes
+Authorization: Bearer <partner JWT>
+Content-Type: application/json
+```
+
+```json
+{
+  "session_id":    "internal-session-uuid",
+  "dispute_type":  "EVSE_MALFUNCTION",
+  "reason":        "Driver reports session stopped at 30% and was charged full amount",
+  "requested_refund_mxn": 162.50
+}
+```
+
+`dispute_type` values: `BILLING_ERROR`, `SERVICE_NOT_DELIVERED`, `OVERCHARGE`, `DUPLICATE`, `EVSE_MALFUNCTION`, `OTHER`.
+
+## Track dispute status
+
+```http
+GET /portal/v1/disputes?status=OPEN&limit=50
+GET /portal/v1/disputes/{dispute_id}
+```
+
+Status progression: `OPEN` → `REVIEWING` → `RESOLVED` (with `PARTIAL_REFUND`, `FULL_REFUND`, or `DENIED`).
+
+## Chargeback vs dispute
+
+| Concept | Origin | When to use |
+|---|---|---|
+| **Dispute** | DP files via this API | Driver-reported issue, before/instead of involving the card network |
+| **Chargeback** | DP's PSP files via the card network | After the driver has involved their bank — usually unavoidable at that point |
+
+See [Chargebacks](/ev-charging/charging-software/chargebacks) for the
+chargeback flow on the CPO side, and the [evidence-pack guide](/guides/chargeback-evidence)
+for how the hub assembles the defence dossier.

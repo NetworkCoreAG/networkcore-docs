@@ -1,23 +1,65 @@
 ---
 title: Multi-CPO / CSMS setup
 description: "You operate a CSMS serving multiple CPOs. One handshake per party_id, shared infrastructure."
+sidebar_position: 3
 ---
 
 # Multi-CPO / CSMS setup
 
-CSMS partners (Ampeco, Driivz, Monta, ChargePoint, EVgo OS, Greenflux, Etrel)
-typically host multiple CPOs under a single platform. Each underlying CPO gets
-its own `(country_code, party_id)` and its own OCPI handshake — but you manage
-all of them through the same NetworkCore relationship.
+CSMS partners (Ampeco, Driivz, ChargePoint OS, Monta, EVgo OS, Greenflux,
+Etrel, etc.) typically host multiple CPOs under a single platform. Each
+underlying CPO gets its own `(country_code, party_id)` and its own OCPI
+handshake — but you manage all of them through the same NetworkCore
+relationship.
 
-:::info Stub page
-Full content arriving as part of the docs build-out.
+## Why this matters
 
-Topics this page will cover:
-- How to register multiple CPOs under your CSMS account
-- Per-CPO `party_id` allocation
-- Tariff routing per CPO
-- Settlement routing per CPO
-- Reporting + invoice split per underlying CPO
-:::
+Your CSMS already has the multi-tenant abstractions internally (one
+codebase, N CPOs as tenants). OCPI's identity model — `(country_code,
+party_id)` per peer — maps cleanly onto your tenants:
 
+- Each CPO tenant gets its own OCPI identity
+- Each runs its own handshake (one Token C per CPO)
+- Each pushes its locations / sessions / CDRs scoped to its own identity
+- Settlements + invoices are emitted per-CPO, not per-CSMS
+
+## Onboarding flow
+
+1. **List the CPOs you want to bring** — each with their proposed `(cc, party_id)`
+2. **NetworkCore ops issues a Token A per CPO** — typically 5–10 at a time
+3. **Your CSMS runs the handshake per Token A** — uses your existing OCPI client, just N invocations
+4. **Tag each CPO tenant with its Token C** — so all subsequent OCPI calls use the right credentials
+5. **Per-CPO finance config** — banking, tax IDs, descriptor templates — entered once per CPO via the partner portal (or batch-imported via API)
+
+## API tooling
+
+For bulk operations during multi-CPO onboarding, we provide:
+
+- **Bulk handshake** — run multiple handshakes in parallel from one CSMS instance
+- **Bulk finance config import** — upload a CSV with banking + tax info per CPO
+
+Contact [partner@networkcore.org](mailto:partner@networkcore.org) before a large onboarding so we can pre-provision Token As + brief our risk team.
+
+## Routing CDR push streams per CPO
+
+Your CSMS pushes CDRs with the correct `(country_code, party_id)` in the
+URL and the body. The hub routes downstream:
+
+- Settlement batches generated per CPO `party_id`
+- Invoices stamped to each CPO's RFC / tax ID
+- Webhooks fire to the CPO's configured endpoints, not yours
+
+If you want webhooks to also fire to your CSMS for monitoring, configure a
+CSMS-level webhook endpoint that subscribes to all events across your
+tenant CPOs.
+
+## Reporting + invoice split
+
+The partner portal aggregates across the CPOs under your CSMS, with filters
+per CPO. You see:
+
+- Total sessions / kWh / volume across all your CPOs
+- Per-CPO drill-downs for each metric
+- Invoice export.zip bundles you can split per CPO for forwarding
+
+Contact us during onboarding if you want CSMS-level monthly summary reports — we can wire a custom report subscription that rolls up all your CPOs.

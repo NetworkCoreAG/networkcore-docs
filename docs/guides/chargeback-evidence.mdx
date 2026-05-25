@@ -1,10 +1,76 @@
 ---
 title: Chargeback evidence pack
-description: "How the hub assembles the dossier sent to issuers when a chargeback opens."
+description: "How the hub assembles the immutable dossier sent to issuers when a chargeback opens."
 ---
 
 # Chargeback evidence pack
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+When a chargeback opens, the hub auto-assembles an **immutable evidence
+pack** — a single JSONB blob containing everything needed to defend the
+transaction at the issuer.
+
+The pack is built within seconds of the chargeback landing. It's
+immutable: once generated, it never changes. Re-running the assembler is a
+no-op (idempotent on `chargeback_id`).
+
+## What's in the pack
+
+```json
+{
+  "schema_version": 1,
+  "generated_at":   "2026-04-29T11:00:05Z",
+  "generated_by":   "auto",
+
+  "chargeback": { /* the chargeback row */ },
+  "session":    { /* full session row at the time of clearing */ },
+  "locked_tariff": {
+    /* the exact tariff that was in effect when the session started */
+    /* — proves price@charger = price@statement (mechanism #09) */
+  },
+  "cdr":          { /* the immutable CDR */ },
+  "clearing":     { /* CPO/DP/NC splits */ },
+  "fingerprints": [
+    /* every device/account/vehicle/IP/geo fingerprint posted for this session */
+  ],
+  "risk_signal":  { /* the explainable risk score at time of session */ },
+  "fraud_flags":  [ /* any active flags touching driver/device/vehicle/BIN */ ],
+  "ocpi_log_slice": [
+    /* the OCPI request log for this session — every push/pull,
+       headers, body, status, timestamps */
+  ]
+}
+```
+
+## Why each piece matters in defence
+
+| Section | What it proves |
+|---|---|
+| `locked_tariff` | The driver saw the price they were charged — mechanism #09 enforced |
+| `cdr` | Final billing record matches the tariff — no after-the-fact mark-up |
+| `clearing` | Funds were split correctly per the commission schedule in effect |
+| `fingerprints` | Device + account + IP + geo continuity (driver A on device A across multiple sessions = not card-not-present fraud) |
+| `risk_signal` | The session passed pre-auth risk scoring — proves we did due diligence |
+| `fraud_flags` | No prior fraud flags on this account at session time — driver was in good standing |
+| `ocpi_log_slice` | Cryptographic trail of every action — both sides' requests/responses |
+
+## API
+
+```http
+GET /portal/v1/chargebacks/{id}     # includes the evidence pack inline
+GET /admin/chargebacks/{id}         # admin-side, with full pack + actions
+POST /admin/chargebacks/{id}/evidence  # rebuild (admin only, rare)
+```
+
+## Idempotency + rebuilds
+
+The evidence pack is auto-generated when a chargeback enters `OPEN` status.
+It can be **rebuilt** by ops in rare cases (e.g. if underlying data was
+corrected) — the rebuild drops the old pack and assembles a fresh one.
+Both versions are audit-logged.
+
+## What the hub does NOT include in the pack
+
+- Raw PAN — never stored, mechanism #13
+- Customer-PII beyond what's in the CDR
+- Internal commission rate cards (we surface splits, not the rate logic that produced them)
+- Other partners' data (a CPO's pack only contains their own + the DP-side counterparty data they need for context)

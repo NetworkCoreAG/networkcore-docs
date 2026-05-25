@@ -1,16 +1,39 @@
 ---
 title: Sandbox
-description: "Test credentials, demo data, and how to exercise the integration without touching production."
+description: "Test credentials, demo data, and how to exercise the integration safely."
 ---
 
 # Sandbox
 
-The hub exposes a fully-functional sandbox environment under the same
-URL with `MOCK_INTEGRATIONS=true` enabled. All third-party integrations
-(STP, SDK.finance, FacturAPI) return canned mock responses.
+The sandbox runs the **same code** as production with `MOCK_INTEGRATIONS=true`.
+All external integrations return canned responses — real session data
+shapes, real CDR mechanics, no real money moves.
 
-:::info Stub page
-Full content arriving as part of the docs build-out. See
-[Sandbox](/sandbox) for the consolidated test-credentials page.
-:::
+See the [full Sandbox page](/sandbox) for credentials + Postman collection.
 
+## What's mocked
+
+| Integration | Real | Mocked |
+|---|---|---|
+| Hub OCPI surface | ✓ |  |
+| Settlement provider (STP/SEPA/ACH) |  | ✓ |
+| FacturAPI CFDI stamping |  | ✓ |
+| SDK.finance wallet |  | ✓ |
+| DP-side webhooks | ✓ |  |
+| OCPI validation rules | ✓ |  |
+| Rate limits | ✓ |  |
+| Authentication | ✓ |  |
+
+## Test data
+
+The sandbox has a built-in **demo seed** that populates:
+
+- 5 demo parties (2 CPOs, 2 DPs, 1 dual-role DriverGo profile)
+- 12 demo locations across Mexican cities
+- 150 demo sessions with mixed statuses
+- Cleared CDRs, settlements, invoices
+- Sample chargebacks across every lifecycle state
+- Risk fingerprints, fraud flags, BIN intelligence
+
+Reset / re-seed via the admin demo endpoints — requires admin auth, your
+NetworkCore ops contact can trigger it.

@@ -5,6 +5,53 @@ description: "How the hub clears + settles in MXN, EUR, USD, BRL, and other supp
 
 # Multi-currency settlement
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+The hub natively settles in multiple currencies. Each party has an
+`operating_currency` set on their finance config; settlement batches are
+grouped per-(party, currency) per-day.
+
+## How it works
+
+1. CDR posted in OCPI session's `currency` (e.g. MXN)
+2. Clearing record written in the same currency — no FX during clearing
+3. Settlement batch created per (party, currency, day)
+4. Payout dispatched via the rail configured for that currency
+5. If the party's operating currency differs from the session currency, FX
+   happens at the wallet/treasury level — not at clearing
+
+## Configured rails
+
+| Currency | Rail | Provider env var | Status |
+|---|---|---|---|
+| MXN | CLABE → SPEI | `STP_API_KEY` | Live |
+| EUR | IBAN → SEPA | `SEPA_PROVIDER_API_KEY` | Mock today |
+| USD | ACH | `ACH_PROVIDER_API_KEY` | Mock today |
+| GBP | FPS_UK | `FPS_UK_PROVIDER_API_KEY` | Mock today |
+| BRL | PIX_BR | `PIX_BR_PROVIDER_API_KEY` | Mock today |
+| CAD | EFT_CA | `EFT_CA_PROVIDER_API_KEY` | Mock today |
+| CHF | IBAN → SIC | `SIC_CH_PROVIDER_API_KEY` | Mock today |
+
+A rail in "mock today" status means the hub will queue + book the
+settlement correctly, but the actual wire is a no-op. Going live with a
+new rail is a single env-var set on our side; no client changes for you.
+
+## Auto-switch via env vars
+
+The provider files at `src/integrations/payout-providers/*` each export a
+`provider` function that checks for the live env var. If set, the file
+makes a real call. If not, it returns a deterministic mock response. This
+means flipping a rail from mock to live is **a single env var update**
+in EB — no code change.
+
+## FX handling
+
+FX is **not** done at clearing. CDR amounts settle in the session currency.
+For partners whose operating currency differs, the **wallet** in SDK.finance
+holds balances in the session currencies and the partner converts on their
+own schedule.
+
+## Multi-currency wallet view
+
+The partner portal Wallet page shows a per-currency balance card. Each
+card links to the payout rail configured for that currency. If a partner's
+operating currency is MXN but they have EUR sessions cleared, both cards
+show in their wallet.

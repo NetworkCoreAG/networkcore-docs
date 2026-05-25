@@ -1,10 +1,60 @@
 ---
 title: CFDI / invoice records
-description: "Pulling CFDI invoices (Mexico) and other regional invoice formats."
+description: "Pulling CFDI invoices (Mexico) + regional equivalents."
+sidebar_position: 1
 ---
 
 # CFDI / invoice records
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+Every cleared session in Mexico produces three CFDIs via FacturAPI:
+
+| Invoice | From → To | What it represents |
+|---|---|---|
+| **Customer** | CPO → Driver | The charging service the driver paid for |
+| **Commission** | NetworkCore → CPO | The hub's fee to the CPO |
+| **Revenue-share** | NetworkCore → DP | The DP's share of the session |
+
+All three are immutable once stamped. You pull them via the partner portal
+API scoped to your role.
+
+## CPO-side: customer + commission invoices
+
+```http
+GET /portal/v1/cpo/invoices?limit=100&offset=0
+GET /portal/v1/cpo/invoices/{facturapi_id}/pdf
+GET /portal/v1/cpo/invoices/{facturapi_id}/xml
+GET /portal/v1/cpo/invoices/export.zip?date_from=2026-01-01&date_to=2026-01-31
+```
+
+The list endpoint returns customer + commission invoices for your CPO.
+The `/pdf` and `/xml` endpoints stream the SAT-validated documents.
+The `/export.zip` endpoint bulks a month's worth into a single zip for
+your accounting team.
+
+## DP-side: revenue-share invoices
+
+```http
+GET /portal/v1/dp/invoices?limit=100&offset=0
+GET /portal/v1/dp/invoices/{facturapi_id}/pdf
+GET /portal/v1/dp/invoices/{facturapi_id}/xml
+GET /portal/v1/dp/invoices/export.zip?date_from=2026-01-01&date_to=2026-01-31
+```
+
+Same shape, scoped to DP-side revenue-share documents.
+
+## Auto-delivery
+
+Set your delivery preference once in the partner portal → Settings → Invoice
+Delivery. Options:
+
+- **Webhook on `invoice.issued`** — receive the invoice metadata + URLs the moment they're stamped
+- **Email digest** — daily / weekly email with all new invoices attached
+- **No auto-delivery** — pull them yourself via the API
+
+See [`invoice.issued` in the webhook catalogue](/webhooks/events) for the payload shape.
+
+## Future verticals + non-Mexico
+
+The hub's CFDI pipeline is Mexico-specific. For regions without a SAT-style
+e-invoice mandate (most of Europe, US, etc.), the hub generates a simpler
+PDF + structured-JSON invoice equivalent. The endpoint shape stays the same.

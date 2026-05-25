@@ -1,10 +1,61 @@
 ---
 title: Migrating from another roaming hub
-description: "Playbook for moving an existing OCPI integration to NetworkCore."
+description: "Playbook for moving an existing OCPI integration from another roaming hub to NetworkCore."
 ---
 
 # Migrating from another roaming hub
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+If you're currently integrated with Hubject, GIREVE, e-clearing.net, or
+running direct OCPI bilaterals, here's the rough playbook for moving to (or
+adding) NetworkCore as a hub.
+
+## Phase 1 — Side-by-side handshake (1–2 days)
+
+Add NetworkCore as **an additional OCPI endpoint** alongside your existing
+hubs. Your CSMS likely already supports multiple `(country_code, party_id)`
+peers — you just register one more.
+
+1. Receive NetworkCore Token A from our ops team
+2. Complete the [OCPI handshake](/ev-charging/charging-software/ocpi-integration#3-handshake-registration)
+3. Push your existing locations / EVSEs / connectors to NetworkCore — same JSON shapes as your other hubs
+4. Push your existing tariffs
+
+At this point your locations show up in NetworkCore-connected DPs alongside
+the other hubs. No driver-facing change.
+
+## Phase 2 — Live sessions side-by-side (1 week)
+
+Configure your CSMS to push sessions + CDRs to NetworkCore for any session
+where the eMSP/DP is registered with NetworkCore. Continue pushing to your
+other hubs for everyone else.
+
+The hub determines DP membership at the CDR — you don't need to pre-filter.
+If we don't have the DP, the CDR is rejected with `2004 Unknown token` and
+you fall back to your other hub.
+
+## Phase 3 — Cutover (your call)
+
+Once you're confident in the NetworkCore integration, you have two paths:
+
+- **Keep both hubs** — most CPOs do this for redundancy
+- **Cut over fully** — drop your other hubs once NetworkCore covers the DPs you care about
+
+We have no objection to either. We'd rather have you connected via both
+hubs than not connected at all.
+
+## Differences vs. typical OCPI hubs
+
+| Concern | Typical hub | NetworkCore |
+|---|---|---|
+| Settlement | Bilateral with each eMSP, you handle invoicing | Hub handles clearing + settlement + invoicing end-to-end |
+| Chargebacks | Your problem | Hub auto-assembles evidence pack + first-loss envelope absorbs the first 1% |
+| Risk engine | None | Mechanism-based 17-point framework with explainable scoring |
+| Tariff enforcement | Honour system | Locked tariffs — drift > 5% raises a fraud flag |
+| Currency support | Often single-currency | Native multi-currency |
+
+## Need help?
+
+Email [partner@networkcore.org](mailto:partner@networkcore.org) with your
+current hub setup + which DPs you most want to reach. We've onboarded CPOs
+coming from each of the major hubs and have migration runbooks for the
+common patterns.

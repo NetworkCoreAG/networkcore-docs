@@ -1,10 +1,94 @@
 ---
-title: Remote start/stop
-description: "Kicking off and stopping sessions from your app."
+title: Remote start / stop
+description: "Kick off and stop sessions from your app via OCPI commands."
+sidebar_position: 5
 ---
 
-# Remote start/stop
+# Remote start / stop
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+When a driver taps "Start charging" in your app, your backend forwards the
+command to the hub, which routes it to the CPO operating the EVSE. The CPO's
+CSMS receives the command, attempts to start the session on the physical
+charger, and the hub POSTs the asynchronous result to your `response_url`.
+
+## Start a session
+
+```http
+POST /ocpi/2.2.1/cpo/commands/START_SESSION
+Authorization: Token TOKEN_C
+X-Request-ID: e2c5f1a7-a2b6-4f91-f3c4-8f3b6c919a0b
+X-Correlation-ID: e2c5f1a7-a2b6-4f91-f3c4-8f3b6c919a0b
+Content-Type: application/json
+```
+
+```json
+{
+  "response_url": "https://your-backend.example/ocpi/2.2.1/commands/result/cmd-abc123",
+  "token": {
+    "country_code": "MX",
+    "party_id":     "EMP",
+    "uid":          "5b1f8e1f-c0e3-4a8b-95a8-2d5f8e9c1aaa",
+    "type":         "APP_USER",
+    "contract_id":  "MX-EMP-CONTRACT-12345",
+    "issuer":       "Example DP",
+    "valid":        true,
+    "whitelist":    "ALWAYS",
+    "last_updated": "2026-04-29T10:00:00Z"
+  },
+  "location_id":  "LOC001",
+  "evse_uid":     "LOC001-EVSE-1",
+  "connector_id": "1",
+  "authorization_reference": "auth-ref-abc123"
+}
+```
+
+**Synchronous ack** — `HTTP 200`:
+
+```json
+{
+  "status_code": 1000,
+  "data": {
+    "result":  "ACCEPTED",
+    "timeout": 30
+  },
+  "timestamp": "2026-04-29T10:14:50Z"
+}
+```
+
+`ACCEPTED` means the command reached the CPO and is being processed. The
+actual session start (or failure) arrives at your `response_url` within
+`timeout` seconds.
+
+## The async result
+
+The hub will POST to your `response_url` with the `CommandResult` envelope:
+
+```json
+{
+  "result":    "ACCEPTED",
+  "timestamp": "2026-04-29T10:15:01Z"
+}
+```
+
+| `result` | Meaning |
+|---|---|
+| `ACCEPTED` | Session started successfully |
+| `REJECTED` | CPO refused (e.g. EVSE in error, unknown token) |
+| `EVSE_OCCUPIED` | Another driver already plugged in |
+| `EVSE_INOPERATIVE` | EVSE is faulted or unavailable |
+| `FAILED` | Command timed out or CPO returned an unexpected error |
+| `NOT_SUPPORTED` | CPO does not support remote start for this EVSE |
+| `TIMEOUT` | CPO did not respond within the `timeout` window |
+| `UNKNOWN_SESSION` | (for STOP_SESSION only) session_id not found |
+
+Once the CPO starts the session, you'll see it appear in the `/emsp/sessions`
+list with `status: "ACTIVE"` — see [Reconciliation](/ev-charging/distribution-partners/reconciliation).
+
+## Other commands
+
+- `POST /ocpi/2.2.1/cpo/commands/STOP_SESSION` — stop an ongoing session by `session_id`
+- `POST /ocpi/2.2.1/cpo/commands/CANCEL_RESERVATION` — cancel a prior reservation
+- `POST /ocpi/2.2.1/cpo/commands/RESERVE_NOW` — pre-allocate an EVSE for a future driver
+- `POST /ocpi/2.2.1/cpo/commands/UNLOCK_CONNECTOR` — release a stuck connector
+
+All four follow the same sync-ack + async-result pattern.

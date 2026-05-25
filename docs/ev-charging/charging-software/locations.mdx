@@ -1,10 +1,45 @@
 ---
 title: Pushing locations
 description: "Locations, EVSEs, connectors — the OCPI location module from the push side."
+sidebar_position: 4
 ---
 
 # Pushing locations
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+Locations are the top-level container in OCPI — a physical site with one or
+more EVSEs, each with one or more connectors. PUT a full Location object to
+the hub when you onboard a new site; PATCH to update specific fields after.
+
+See **[OCPI Integration → §5.1](/ev-charging/charging-software/ocpi-integration#51-push-a-location)** for a full worked example with curl + JSON.
+
+## Update semantics
+
+- `PUT /ocpi/2.2.1/cpo/locations/{cc}/{party_id}/{location_id}` — full replace
+- `PATCH /ocpi/2.2.1/cpo/locations/{cc}/{party_id}/{location_id}` — partial update
+- `PATCH /ocpi/2.2.1/cpo/locations/{cc}/{party_id}/{location_id}/{evse_uid}` — single EVSE update (e.g. status change AVAILABLE → CHARGING)
+- `PATCH /ocpi/2.2.1/cpo/locations/{cc}/{party_id}/{location_id}/{evse_uid}/{connector_id}` — single connector update
+
+EVSE status updates are high-frequency (every state change) — use the
+narrowest PATCH path so you don't push entire Location objects unnecessarily.
+
+## Required fields
+
+- `id`, `country_code`, `party_id`, `publish`
+- `address`, `city`, `country`
+- `coordinates: { latitude, longitude }`
+- `time_zone` (IANA, e.g. `America/Mexico_City`)
+- At least one EVSE, with at least one connector
+
+## EVSE status values
+
+| Status | Meaning |
+|---|---|
+| `AVAILABLE` | Ready to be used |
+| `BLOCKED` | Cannot be used (e.g. car blocking access without charging) |
+| `CHARGING` | Session active |
+| `INOPERATIVE` | Fault or offline |
+| `OUTOFORDER` | Hardware failure |
+| `PLANNED` | Planned but not yet live |
+| `REMOVED` | Decommissioned |
+| `RESERVED` | Reserved for incoming driver |
+| `UNKNOWN` | State unclear (avoid — push real status as soon as known) |

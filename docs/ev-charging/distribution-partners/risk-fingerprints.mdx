@@ -1,10 +1,82 @@
 ---
 title: Risk fingerprints
-description: "POST device/account/vehicle hashes for the hub to correlate across the network."
+description: "POST device / vehicle / account / IP hashes for the hub to correlate across the network and detect fraud patterns."
+sidebar_position: 6
 ---
 
 # Risk fingerprints
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
+NetworkCore's [risk engine](/guides/risk-engine) scores every cleared session
+across explainable factors (amount, velocity, fingerprint correlations, fraud
+flags). The signal it produces drives 3DS recommendations + capture strategy
+the moment a session ends.
+
+To score effectively the hub needs **device / vehicle / account / IP
+fingerprints** for each session. You — the DP — are the only party that can
+provide these. POST them via the partner-portal API whenever you start or
+update a session.
+
+## Post a fingerprint
+
+```http
+POST /portal/v1/risk/fingerprints
+Authorization: Bearer <your partner JWT>
+Content-Type: application/json
+```
+
+```json
+{
+  "session_id":    "internal-session-uuid-here",
+  "device_hash":   "sha256-of-device-id",
+  "vehicle_hash":  "sha256-of-vin-or-rfid",
+  "account_hash":  "sha256-of-account-id",
+  "ip_hash":       "sha256-of-ip-/24-prefix",
+  "geo_country":   "MX",
+  "geo_city":      "Mexico City"
+}
+```
+
+**Response** — `HTTP 201`:
+
+```json
+{
+  "fingerprint_id": "uuid",
+  "anomalies": [
+    { "code": "DEVICE_MULTI_ACCOUNT", "severity": "WARN", "detail": "6 accounts on device in 30 days" }
+  ]
+}
+```
+
+The response surfaces any anomalies the correlation step found — surface
+these in your fraud-ops dashboard.
+
+## What gets hashed (and what doesn't)
+
+| Field | What it is | Why hashed |
+|---|---|---|
+| `device_hash` | Your device fingerprint (install id, OS-level ad ID, etc.) — hashed by you | The hub never sees the raw device identifier |
+| `vehicle_hash` | VIN or RFID, hashed | Same |
+| `account_hash` | Your internal driver account id, hashed | Same |
+| `ip_hash` | IP /24 prefix + salt, hashed | Per-session granularity, no PII |
+| `geo_country` | ISO-2 country | Not sensitive; used to detect impossible travel |
+| `geo_city` | City name | Same |
+
+:::warning Never send raw PAN
+The hub also runs a Luhn-checked **PAN-shape detector** middleware
+([mechanism #13 — Network tokens, no PAN](/guides/risk-engine)) on every
+inbound payload. Any request containing 12–19 consecutive digits that pass
+Luhn returns `HTTP 422` and raises a `BLOCK`-severity fraud flag scoped to
+your party. Use network tokens or hashes only.
 :::
+
+## Anomalies the hub detects
+
+| Code | Trigger |
+|---|---|
+| `DEVICE_MULTI_ACCOUNT` | One device → ≥5 accounts in 30 days (account farming) |
+| `ACCOUNT_MULTI_DEVICE` | One account → ≥4 devices in 7 days (compromised account) |
+| `ACCOUNT_GEO_SHIFT` | Same account active across ≥2 countries within 1 hour (bot-like) |
+
+Each anomaly also writes a `fraud_flag` row that the risk engine picks up
+during scoring. See [Risk engine](/guides/risk-engine) for how factors
+combine into a session score.

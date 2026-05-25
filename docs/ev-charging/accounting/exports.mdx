@@ -1,10 +1,43 @@
 ---
 title: CSV / JSON / OFX exports
-description: "Export formats for bulk import into ERPs."
+description: "Bulk export formats for ERP imports."
+sidebar_position: 4
 ---
 
 # CSV / JSON / OFX exports
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+For bulk import into Xero, QuickBooks, NetSuite, SAP, or in-house ERPs the
+hub provides:
+
+| Format | Endpoint | What's in it |
+|---|---|---|
+| **JSON** | All `/portal/v1/...` list endpoints return JSON natively | Full structured data |
+| **CSV** | `?format=csv` query param on list endpoints | Flat rows for spreadsheets / Excel |
+| **OFX 2.0** | `/portal/v1/cpo/settlement/export.ofx?date_from=…&date_to=…` | Direct import into QuickBooks / Quicken |
+| **Invoices zip** | `/portal/v1/cpo/invoices/export.zip` + `/portal/v1/dp/invoices/export.zip` | PDF + XML invoices per stamped CFDI |
+
+## CSV column schema (settlement)
+
+| Column | Type |
+|---|---|
+| `batch_date` | YYYY-MM-DD |
+| `batch_id` | UUID |
+| `currency` | CHAR(3) |
+| `gross_amount` | numeric(12,2) |
+| `cpo_amount` | numeric(12,2) |
+| `dp_amount` | numeric(12,2) |
+| `nc_amount` | numeric(12,2) |
+| `fees` | numeric(12,2) |
+| `wire_reference` | text |
+| `session_count` | int |
+
+## Recommended pattern
+
+A common ERP integration looks like:
+
+1. **Nightly scheduled job** (your side): pull last 24h via JSON, transform to your ERP's import format, import
+2. **Monthly close**: pull the `export.zip` for the month, attach PDFs to ERP entries
+3. **Audit**: keep the OFX file as a permanent record per period
+
+If you need a format we don't yet support, [tell us](mailto:partner@networkcore.org)
+— OFX support landed because three CPOs asked for it.

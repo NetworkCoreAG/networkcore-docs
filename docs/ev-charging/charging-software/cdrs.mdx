@@ -1,10 +1,45 @@
 ---
 title: CDRs
-description: "Charge Detail Records — the immutable billing source of truth."
+description: "Charge Detail Records — the immutable billing source of truth that triggers financial clearing."
+sidebar_position: 6
 ---
 
 # CDRs
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+CDRs (Charge Detail Records) are the immutable settlement-of-record for a
+charging session. **The hub clears off the CDR**, not off the session —
+sessions can be re-pushed and corrected, CDRs cannot.
+
+See **[OCPI Integration → §5.3](/ev-charging/charging-software/ocpi-integration#53-post-a-cdr-final-billing-record)** for the worked POST example.
+
+## When to POST
+
+POST the CDR **once the session has fully ended** and you've calculated the
+final `total_cost`, `total_energy`, and `total_time`. The CDR is the trigger
+for:
+
+1. **Tariff lock validation** — the hub checks the CDR's `total_cost` against the tariff that was locked at session start. Drift > 5% raises a `PRICE_DRIFT` fraud flag (mechanism #09)
+2. **Commission split** — CPO / DP / NetworkCore shares are computed and written to a clearing record
+3. **Settlement queue** — the cleared amount is queued for payout on the rail configured for the party's operating currency
+4. **CFDI invoice generation** (Mexico) — the customer, commission, and revenue-share CFDIs are stamped via FacturAPI
+5. **`session.settled` webhook** — fires to both CPO and DP with the cleared amounts and invoice IDs
+
+## Idempotency
+
+CDRs are idempotent on `(country_code, party_id, id)`. Re-posting the same
+CDR is a no-op — the hub returns `status_code: 1000` and does nothing.
+
+If you need to **correct** a CDR (rare — usually only if you posted a CDR
+with a tariff bug), contact NetworkCore ops. Direct correction via API is
+not supported because CDRs are the audit trail.
+
+## Required fields
+
+`id`, `country_code`, `party_id`, `start_date_time`, `end_date_time`,
+`session_id`, `cdr_token`, `auth_method`, `cdr_location`, `currency`,
+`charging_periods`, `total_cost: { excl_vat, incl_vat }`, `total_energy`,
+`total_time`, `last_updated`.
+
+The `charging_periods` array must contain at least one period with
+`ENERGY` + `TIME` dimensions. For sessions with tariff transitions (e.g.
+peak/off-peak), include one period per transition with the rate applied.

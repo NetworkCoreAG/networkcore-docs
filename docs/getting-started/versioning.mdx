@@ -5,14 +5,60 @@ description: "How we evolve the API without breaking your integration."
 
 # Versioning
 
-- **OCPI**: versioned at the path (`/ocpi/2.2.1/...`). New OCPI versions land beside, never replacing.
-- **Hub APIs** (`/portal/v1/*`, `/dp/v1/*`): URL-versioned. v2 sits beside v1 for at least 6 months before v1 is retired.
-- **Webhooks**: schema versioned in the event envelope (`schema_version` field). Old payload shapes stay valid for 12 months after a new schema_version ships.
+## OCPI
 
-We publish breaking changes in the [Changelog](/changelog) **at least 90 days
-before** they take effect.
+OCPI is versioned at the URL path:
 
-:::info Stub page
-Full content arriving as part of the docs build-out.
-:::
+```
+/ocpi/2.2.1/...
+```
 
+New OCPI versions land **beside** the current one — they never replace. When
+OCPI 2.3 lands the URL will be `/ocpi/2.3/...` and 2.2.1 will keep working
+for at least 12 months.
+
+## Hub APIs
+
+`/portal/v1/`, `/dp/v1/`, `/driver/v1/` are URL-versioned. When `v2` lands
+it sits beside `v1` for at least **6 months** before `v1` is retired.
+
+## Webhooks
+
+Webhook payloads carry a `schema_version` field in the envelope. Old
+payload shapes stay valid for **12 months** after a new `schema_version`
+ships, allowing you to upgrade on your own schedule.
+
+```json
+{
+  "schema_version": 1,
+  "event":          "session.settled",
+  "...": "..."
+}
+```
+
+## Breaking changes
+
+We publish breaking changes in the [Changelog](/changelog) at least **90
+days before they take effect**. Subscribe to the changelog via:
+
+- RSS (the docs site emits a feed)
+- The `api.breaking_change` webhook event (you'll receive one for every
+  breaking change at least 90 days before the cutover)
+
+## What counts as breaking
+
+Yes:
+- Removing a field from a response
+- Changing a field's type
+- Adding a new required field to a request
+- Tightening validation in a way that fails previously-accepted requests
+- Removing an endpoint
+- Changing an endpoint's behaviour in a way that requires client changes
+
+No (not breaking — ship freely):
+- Adding optional fields to requests
+- Adding new fields to responses
+- Adding new endpoints
+- Loosening validation to accept previously-rejected requests
+- Adding new event types to webhooks
+- Adding new optional values to enums

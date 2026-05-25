@@ -1,10 +1,43 @@
 ---
 title: Settlement remittance reports
 description: "Per-batch payout details for your books."
+sidebar_position: 2
 ---
 
 # Settlement remittance reports
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+For each settlement batch the hub generates a remittance report covering:
+
+- Every session that contributed
+- Gross amount, CPO/DP/NC splits, fees
+- The wire reference (SPEI / SEPA / ACH order id)
+- Reserve held / released
+- First-loss envelope absorption (if any)
+
+## Pull settlement batches
+
+```http
+GET /portal/v1/cpo/settlement?date_from=2026-01-01&date_to=2026-01-31
+GET /portal/v1/dp/payouts?date_from=2026-01-01&date_to=2026-01-31
+```
+
+The list endpoints return one row per batch with totals. To drill into a
+specific batch's sessions:
+
+```http
+GET /portal/v1/cpo/settlement/{batch_id}
+```
+
+## Webhook delivery
+
+Subscribe to the `settlement.batch.confirmed` webhook to receive each batch
+the moment funds are wired. Payload includes the full session list + the
+wire reference.
+
+See [Webhooks → events](/webhooks/events).
+
+## Reconciliation
+
+Match each `settlement.batch.confirmed` event against the wire entry on your
+bank statement using the `wire_reference` field. Drift between the two is
+diagnosed via [reconciliation endpoints](/ev-charging/accounting/reconciliation).

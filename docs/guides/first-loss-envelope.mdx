@@ -1,10 +1,66 @@
 ---
 title: First-loss envelope
-description: "NetworkCore absorbs the first 1% of CPO chargeback losses per period."
+description: "NetworkCore absorbs the first 1% of chargeback losses per CPO per year."
 ---
 
 # First-loss envelope
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+NetworkCore commits to absorbing the **first 1% of chargeback losses** per
+CPO per calendar year. This is the first-loss envelope — Layer 3 mechanism
+#15 in the chargeback framework.
+
+## How the envelope works
+
+Each CPO has a per-(party, period, currency) envelope row in
+`first_loss_envelopes`. Envelope size = 1% of trailing-12-month GMV at the
+time the envelope is created. Min cap: 500 (in operating currency).
+
+When a chargeback resolves as `LOST`:
+
+1. Hub debits the envelope first
+2. If the envelope has capacity, NetworkCore absorbs the loss — CPO + DP take nothing
+3. If the envelope is exhausted, the residual is split between CPO + DP (default 50/50) and forward-netted against the next settlement batch
+
+## States
+
+```
+ACTIVE     → CLOSED       (period ended cleanly, new envelope next period)
+ACTIVE     → EXHAUSTED    (envelope drawn to zero mid-period)
+EXHAUSTED  → ACTIVE       (next period kicks in)
+```
+
+## Why this matters to CPOs
+
+Chargebacks in the EV-charging space are higher than other industries
+(2.81% in Mexico vs 0.5–1% in mature retail). The first-loss envelope
+turns the most-painful first stretch of chargebacks per period into
+NetworkCore's problem, not yours.
+
+Practically: a CPO doing $100k/month MXN in cleared volume has a
+~$12k/year envelope. If their first ~10–15 chargebacks of the year resolve
+as `LOST`, those losses are absorbed entirely by NetworkCore.
+
+## Visibility
+
+You see your envelope status in the partner portal → Wallet → First-Loss
+card. It shows:
+
+- Envelope size for this period
+- Amount absorbed so far
+- Remaining capacity
+- Period start / end
+
+API access:
+
+```http
+GET /portal/v1/risk/first-loss
+```
+
+Returns active envelopes for your party.
+
+## Beyond the envelope: distribution
+
+Once the envelope is exhausted, mechanism #17 kicks in — the residual loss
+is **proportionally distributed** between CPO + DP and **forward-netted**
+against future settlement batches. Default split is 50/50; ops can tune
+per partnership.

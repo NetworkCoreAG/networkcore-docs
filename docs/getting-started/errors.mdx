@@ -1,31 +1,72 @@
 ---
 title: Error responses
-description: "Uniform error response shape across all endpoints."
+description: "Uniform error response shape across all hub endpoints."
 ---
 
 # Error responses
 
-All non-OCPI endpoints return errors in a consistent shape:
+Errors come in two shapes depending on which surface you're calling.
+
+## OCPI endpoints
+
+OCPI uses a soft-error envelope — **HTTP 200 with a `status_code` in the body**:
 
 ```json
 {
-  "error": "human-readable message",
+  "status_code":    2001,
+  "status_message": "Invalid CDR — total_cost.excl_vat is required",
+  "timestamp":      "2026-04-29T12:34:56Z"
+}
+```
+
+Always inspect `status_code`, not just the HTTP status. See the
+[OCPI Integration → error responses](/ev-charging/charging-software/ocpi-integration#6-error-responses)
+section for the full status-code catalogue.
+
+## Non-OCPI endpoints (`/portal/v1/*`, `/dp/v1/*`, `/admin/*`)
+
+These use a consistent JSON shape with the HTTP status reflecting the outcome:
+
+```json
+{
+  "error": "human-readable message — safe to surface to the user",
   "code":  "VALIDATION_FAILED",
-  "details": { /* optional, endpoint-specific */ }
+  "details": { /* optional, endpoint-specific structured details */ }
 }
 ```
 
-OCPI endpoints use the OCPI error envelope:
+## HTTP status conventions
 
-```json
-{
-  "status_code": 2001,
-  "status_message": "Invalid or missing parameters",
-  "timestamp": "2026-05-22T08:30:00.000Z"
-}
-```
+| Status | When |
+|---|---|
+| `200` | OK |
+| `201` | Resource created |
+| `204` | No content (often for DELETE / PATCH with nothing returned) |
+| `400` | Bad request — missing required field, malformed JSON |
+| `401` | Missing or invalid authentication |
+| `403` | Authenticated but insufficient permissions for this action |
+| `404` | Resource not found, OR resource exists but caller can't see it (we intentionally don't differentiate to avoid info leaks) |
+| `409` | Conflict — usually idempotency-key collision with a different body |
+| `422` | Validation failed (or PAN-shaped data detected — mechanism #13) |
+| `429` | Rate limit exceeded |
+| `500` | Hub-side bug — please [report](https://github.com/NetworkCoreAG/networkcore-docs/issues) with the X-Correlation-ID |
+| `502` / `503` | Hub briefly unavailable — retry with exponential backoff |
 
-:::info Stub page
-Full content + status code catalogue arriving as part of the docs build-out.
-:::
+## Correlation IDs
 
+Every response includes an `X-Correlation-ID` header — copy this when
+reporting issues. We can trace the entire request flow through the hub from
+that one identifier.
+
+## Common error codes
+
+| `code` | Meaning |
+|---|---|
+| `VALIDATION_FAILED` | Body validation failed — `details` has the field-level errors |
+| `RATE_LIMITED` | Too many requests — wait per `Retry-After` header |
+| `UNAUTHORIZED` | Auth header missing, malformed, or expired |
+| `FORBIDDEN` | Auth valid but you don't have permission for this resource |
+| `NOT_FOUND` | Resource doesn't exist (or you can't see it) |
+| `CONFLICT` | Idempotency-key collision with different body |
+| `PAN_DETECTED` | A PAN-shaped digit run was detected in the payload (mechanism #13) |
+| `INTERNAL_ERROR` | Hub-side bug — please report |

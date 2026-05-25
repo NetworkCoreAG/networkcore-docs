@@ -1,14 +1,42 @@
 ---
 title: Single CPO setup
 description: "You operate one CPO. One country_code + party_id. One OCPI handshake."
+sidebar_position: 2
 ---
 
 # Single CPO setup
 
-Use this pattern when your software runs charging operations for a single
-brand under a single OCPI identity.
+The simplest pattern: your software operates charging for a single brand
+under a single OCPI identity.
 
-:::info Stub page
-Full content arriving as part of the docs build-out.
-:::
+## Steps
 
+1. **Pick an OCPI identity** — your `(country_code, party_id)` pair. The
+   `country_code` is ISO-2 (e.g. `MX`, `BR`, `ES`). The `party_id` is 3
+   ASCII alphanumeric characters of your choice. Common pattern: 3-letter
+   abbreviation of your brand (e.g. `VOL` for Voltium).
+2. **Receive Token A** from NetworkCore ops during onboarding
+3. **Complete the [handshake](/ev-charging/charging-software/ocpi-integration#3-handshake-registration)** — receive Token C
+4. **Push your locations** ([§5.1](/ev-charging/charging-software/ocpi-integration#51-push-a-location))
+5. **Push your tariffs** ([tariffs page](/ev-charging/charging-software/tariffs))
+6. **Push sessions + CDRs as they happen** ([§5.2](/ev-charging/charging-software/ocpi-integration#52-push-a-session-start) + [§5.3](/ev-charging/charging-software/ocpi-integration#53-post-a-cdr-final-billing-record))
+
+That's it. The hub handles routing to DPs from there.
+
+## Onboarding checklist
+
+| Step | Owner | Status |
+|---|---|---|
+| OCPI identity confirmed | You | |
+| Token A received | NetworkCore | |
+| Sandbox handshake completed | You | |
+| Sandbox locations pushed | You | |
+| Sandbox tariff pushed | You | |
+| Sandbox session + CDR flow tested | You | |
+| Production Token A issued | NetworkCore | |
+| Production handshake completed | You | |
+| Production locations pushed | You | |
+| Production tariff pushed | You | |
+| First production session settled | Both | |
+
+Total: usually 1–2 weeks from kickoff to first production session.

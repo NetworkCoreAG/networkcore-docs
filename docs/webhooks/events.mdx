@@ -1,10 +1,158 @@
 ---
 title: Event catalogue
-description: "Every webhook event the hub emits, with payload schemas."
+description: "Every webhook event the hub emits, with payload schemas and trigger conditions."
+sidebar_position: 2
 ---
 
 # Event catalogue
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+Subscribe to one or more event types when you create a webhook endpoint in
+the partner portal. Each delivery has the same envelope shape:
+
+```json
+{
+  "event":       "session.settled",
+  "event_id":    "uuid (idempotency key)",
+  "delivery_id": "uuid (per-delivery, also in X-NC-Delivery-ID)",
+  "occurred_at": "2026-04-29T11:00:01Z",
+  "data":        { /* event-specific payload */ }
+}
+```
+
+## Session lifecycle
+
+### `session.started`
+
+A new session was registered with the hub (CPO pushed the start).
+
+### `session.updated`
+
+A session's progress changed (kWh delivered, status transition).
+
+### `session.settled`
+
+The session is fully cleared — CDR posted, splits computed, payout queued,
+invoices stamped. **The most important event for downstream financial
+reconciliation.** Payload:
+
+```json
+{
+  "session_id":      "internal-uuid",
+  "ocpi_session_id": "S1234",
+  "cpo_party_id":    "uuid",
+  "cpo_name":        "Your CPO",
+  "gross_amount":    188.50,
+  "cpo_amount":      169.65,
+  "dp_amount":       9.42,
+  "nc_amount":       9.43,
+  "energy_kwh":      25.0,
+  "currency":        "MXN",
+  "settled_at":      "2026-04-29T11:00:05Z",
+  "invoices": {
+    "customer_uuid":      "cfdi-uuid",
+    "customer_pdf_url":   "...",
+    "customer_xml_url":   "...",
+    "commission_uuid":    "cfdi-uuid",
+    "revenue_share_uuid": "cfdi-uuid"
+  }
+}
+```
+
+## Invoicing
+
+### `invoice.issued`
+
+A CFDI was stamped. Fires once per invoice (customer, commission,
+revenue-share — three deliveries per settled session in MX).
+
+```json
+{
+  "party_type":     "CPO",
+  "session_id":     "uuid",
+  "issued_at":      "2026-04-29T11:00:05Z",
+  "customer_invoice": {
+    "facturapi_id": "...",
+    "uuid":         "cfdi-uuid",
+    "pdf_url":      "...",
+    "xml_url":      "..."
+  }
+}
+```
+
+## Settlement
+
+### `settlement.batch.created`
+
+A daily settlement batch was created for your party.
+
+### `settlement.batch.submitted`
+
+The batch was submitted to the payout provider (SPEI / SEPA / ACH).
+
+### `settlement.batch.confirmed`
+
+The wire is confirmed received. Use the `wire_reference` to reconcile against your bank statement.
+
+```json
+{
+  "batch_id":       "uuid",
+  "batch_date":     "2026-04-29",
+  "party_id":       "uuid",
+  "currency":       "MXN",
+  "gross_amount":   12450.00,
+  "wire_reference": "stp-order-12345",
+  "session_count":  42,
+  "confirmed_at":   "2026-04-29T13:30:00Z"
+}
+```
+
+## Disputes & chargebacks
+
+### `dispute.filed` / `dispute.resolved`
+
+A partner-side dispute (driver-reported issue) was filed or resolved.
+
+### `chargeback.opened`
+
+A chargeback landed via the DP's PSP. Evidence pack is being assembled.
+
+### `chargeback.evidence.prepared`
+
+Evidence pack is ready for ops review.
+
+### `chargeback.represented`
+
+NetworkCore submitted the evidence to the issuer.
+
+### `chargeback.resolved`
+
+The issuer ruled. Payload includes the outcome (`WON`, `LOST`, `WITHDRAWN`)
+and — for `LOST` — the distribution (first-loss absorbed, CPO + DP shares).
+
+```json
+{
+  "chargeback_id":       "uuid",
+  "session_id":          "uuid",
+  "outcome":             "LOST",
+  "amount":              188.50,
+  "currency":            "MXN",
+  "distribution": {
+    "first_loss_absorbed": 188.50,
+    "cpo_amount":          0,
+    "dp_amount":           0,
+    "nc_amount":           0
+  },
+  "resolved_at": "2026-05-15T14:30:00Z"
+}
+```
+
+## Risk
+
+### `risk.signal.updated`
+
+A new risk signal was scored for a session. Used by DPs to gate the next
+authorisation with 3DS — see [3DS recommendation](/ev-charging/distribution-partners/threeds-recommendation).
+
+### `fraud.flag.raised`
+
+A new fraud flag was raised (manual ops action or auto-detection).

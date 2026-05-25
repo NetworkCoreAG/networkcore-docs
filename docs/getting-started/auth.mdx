@@ -1,6 +1,6 @@
 ---
 title: Authentication
-description: "How to authenticate with the hub: OCPI tokens, partner JWT, admin keys."
+description: "How to authenticate with the hub — OCPI tokens, partner JWTs, admin API keys."
 ---
 
 # Authentication
@@ -8,16 +8,73 @@ description: "How to authenticate with the hub: OCPI tokens, partner JWT, admin 
 The hub uses three distinct authentication mechanisms depending on which
 surface you're calling.
 
-| Surface | Auth method | Header |
+| Surface | Method | Header |
 |---|---|---|
 | `/ocpi/2.2.1/*` | OCPI Token C (Bearer) | `Authorization: Token <token_c>` |
 | `/portal/v1/*` | Partner-user JWT (HS256) | `Authorization: Bearer <jwt>` |
+| `/dp/v1/*` | DP-scoped webhook secret | `Authorization: Bearer <secret>` |
+| `/driver/v1/*` | Driver token (signed) | `Authorization: Bearer <driver-jwt>` |
 | `/admin/*` | Admin user JWT or pre-shared API key | `Authorization: Bearer <jwt>` or `X-Admin-Key: ...` |
 
-The handshake to obtain a Token C is documented under
-[For CPOs & CSMS → OCPI Integration](/ev-charging/charging-software/ocpi-integration).
+## OCPI Token C
 
-:::info Stub page
-Full content arriving as part of the docs build-out.
-:::
+The long-lived auth for all OCPI requests. Issued during the [OCPI handshake](/ev-charging/charging-software/ocpi-integration#3-handshake-registration).
 
+```http
+GET /ocpi/2.2.1/emsp/locations
+Authorization: Token <Token C>
+```
+
+## Partner JWT
+
+The token a partner user receives after signing into the partner portal
+(via `/portal/auth/login`). Used to authenticate all `/portal/v1/*` calls.
+
+Sign-in flow:
+
+```http
+POST /portal/auth/login
+Content-Type: application/json
+
+{ "email": "owner@your-company.com", "password": "..." }
+```
+
+```json
+{
+  "token":   "eyJhbGciOiJIUzI1NiIs...",
+  "expires_at": "2026-04-30T10:00:00Z",
+  "me": {
+    "user":  { "id": "...", "email": "...", "name": "..." },
+    "party": { "id": "...", "name": "Your CPO", "role": "CPO" }
+  }
+}
+```
+
+Then on every subsequent call:
+
+```http
+GET /portal/v1/cpo/sessions
+Authorization: Bearer <token>
+```
+
+Tokens expire after 24 hours. Sign in again to get a fresh one.
+
+## Admin API key
+
+For server-to-server admin operations (rare for partners — typically only
+used by your engineering team if they're shipping internal tooling that
+talks to the hub):
+
+```http
+POST /admin/...
+X-Admin-Key: <admin api key>
+```
+
+Admin keys are issued out-of-band. If you need one, email
+[partner@networkcore.org](mailto:partner@networkcore.org) with the use case.
+
+## Rotating credentials
+
+- **Token C**: contact NetworkCore ops; we issue a new Token A and re-handshake
+- **Partner JWT**: re-sign-in via `/portal/auth/login`
+- **Webhook signing secret**: rotate via the partner portal → Integrations → Webhook → Rotate secret

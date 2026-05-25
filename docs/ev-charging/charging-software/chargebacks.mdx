@@ -1,10 +1,72 @@
 ---
 title: Chargebacks
-description: "The evidence pack the hub assembles, and how you act on outcomes."
+description: "The evidence pack the hub assembles automatically, and how you act on issuer outcomes."
+sidebar_position: 10
 ---
 
 # Chargebacks
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+A chargeback is an issuer-initiated reversal that propagates back to us via
+the DP's PSP. The hub responds by auto-assembling an **evidence pack** — the
+immutable dossier of session + CDR + clearing + tariff + fingerprints + audit
+trail that goes to the issuer in defence.
+
+You see chargebacks raised against your sessions in the partner portal's
+**Chargebacks** page. You can read the evidence pack but you don't change
+status — that's NetworkCore ops.
+
+## Lifecycle
+
+```
+OPEN → EVIDENCE_PREPARED → REPRESENTED → WON | LOST | WITHDRAWN
+```
+
+| Status | What's happening |
+|---|---|
+| `OPEN` | DP's PSP reported the chargeback; hub is assembling evidence |
+| `EVIDENCE_PREPARED` | Evidence pack ready; awaiting ops review |
+| `REPRESENTED` | Hub submitted evidence to the issuer via the DP's PSP |
+| `WON` | Issuer accepted; chargeback reversed |
+| `LOST` | Issuer ruled against us; first-loss envelope absorbs (then CPO/DP split residual) |
+| `WITHDRAWN` | Driver withdrew the dispute |
+
+## What the evidence pack contains
+
+Auto-assembled by [`src/chargebacks/evidence-pack.ts`](https://github.com/NetworkCoreAG/Platform/blob/main/src/chargebacks/evidence-pack.ts) within seconds of a chargeback opening. Includes:
+
+- Full session row (start/end, kWh, location, EVSE, connector)
+- The locked tariff that applied (proving the rate driver saw equals the
+  rate billed — mechanism #09)
+- The CDR (immutable billing record)
+- The clearing record (CPO/DP/NC splits)
+- All risk fingerprints (device, vehicle, account, IP, geo)
+- The driver's risk signal at time of session
+- Any active fraud flags
+- An OCPI request log slice covering the session
+
+See the [chargeback evidence-pack guide](/guides/chargeback-evidence) for the
+full payload shape.
+
+## What you do
+
+Practically: nothing. The hub assembles the evidence pack automatically.
+You can view it in the partner portal but you don't take action on it —
+NetworkCore ops handles representation.
+
+You **will** see the financial impact:
+
+- A `LOST` chargeback draws against your [first-loss envelope](/guides/first-loss-envelope) (NetworkCore absorbs up to 1% of CPO GMV annually)
+- Beyond the envelope, the residual is split 50/50 CPO/DP by default — forward-netted against your next settlement batch
+- A `WON` chargeback has no financial impact on you
+
+## API
+
+```http
+GET /portal/v1/chargebacks?status=OPEN&limit=50
+GET /portal/v1/chargebacks/{chargeback_id}
+GET /portal/v1/chargebacks/summary
+```
+
+The detail endpoint returns the chargeback + the evidence pack JSON. The
+summary endpoint returns counts by status + open amount by currency for
+your wallet dashboard.

@@ -1,15 +1,40 @@
 ---
 title: Idempotency
-description: "Safe retries for write operations via idempotency keys."
+description: "Safe retries for write operations using the Idempotency-Key header."
 ---
 
 # Idempotency
 
-Write endpoints accept an `Idempotency-Key` header. If the same key is
-seen within 24h with an identical body, the original response is replayed.
-Different bodies under the same key return `409 Conflict`.
+Write endpoints on `/portal/v1/*` and `/dp/v1/*` accept an `Idempotency-Key`
+header. If the same key is seen again within 24 hours:
 
-:::info Stub page
-Full content arriving as part of the docs build-out.
-:::
+- **Same body** → the original response is replayed (no double-execution)
+- **Different body** → `HTTP 409 Conflict`
 
+```http
+POST /portal/v1/disputes
+Authorization: Bearer <partner JWT>
+Idempotency-Key: 7c5a2c92-3b4f-4e1c-9c4d-1e7b9c2a3a40
+Content-Type: application/json
+
+{ ... }
+```
+
+## OCPI endpoints
+
+OCPI is idempotent natively by `(country_code, party_id, id)` on resources
+that have an ID (Locations, Sessions, CDRs, Tariffs, Tokens). No
+`Idempotency-Key` header needed — the hub treats `PUT` + `POST` of the
+same OCPI object as a no-op.
+
+## Recommended client pattern
+
+- Generate a fresh UUID v4 for each new write operation
+- On network error or 5xx, **retry with the same key** — safe, will replay
+- Never reuse a key for a different operation
+
+## When to NOT send a key
+
+If your operation is naturally read-only (`GET`) or trivially idempotent
+(e.g. PATCH that sets a single boolean), you can skip the header. The hub
+won't reject requests without an Idempotency-Key.

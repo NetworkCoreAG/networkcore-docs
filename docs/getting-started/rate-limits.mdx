@@ -1,24 +1,58 @@
 ---
 title: Rate limits
-description: "Per-tier rate limits + how to read the response headers."
+description: "Per-cluster rate limits + how to read the response headers."
 ---
 
 # Rate limits
 
-The hub applies rate limits per IP + endpoint cluster:
+The hub applies per-IP rate limits per endpoint cluster using a sliding window.
 
-| Cluster | Limit (per minute) |
+| Cluster | Limit (per minute) | Comment |
+|---|---|---|
+| `/ocpi/*` | **500** | High limit — OCPI implementations often burst |
+| `/portal/v1/*` | **60** | Partner portal use |
+| `/dp/v1/*` | **100** | DP webhook receivers |
+| `/dp/v1/webhook/*` | **10** | Webhook ingress (very narrow) |
+| `/admin/*` | **30** | Admin operations |
+| `/webhooks/sdk-finance` | **30** | SDK.finance ingress |
+| `/stp/webhook/*` | **30** | STP wire confirmations |
+
+## Response headers
+
+Every response includes these headers (IETF draft `draft-ietf-httpapi-ratelimit-headers`):
+
+```http
+RateLimit-Limit:     500
+RateLimit-Remaining: 487
+RateLimit-Reset:     60
+RateLimit-Policy:    500;w=60
+```
+
+| Header | Meaning |
 |---|---|
-| `/ocpi/*` | 500 |
-| `/admin/*` | 30 |
-| `/portal/v1/*` | 60 |
-| `/dp/v1/*` | 100 |
-| Webhook receivers | 10–30 (varies) |
+| `RateLimit-Limit` | Max requests allowed in the current window |
+| `RateLimit-Remaining` | Requests remaining before you hit the limit |
+| `RateLimit-Reset` | Seconds until the window resets |
+| `RateLimit-Policy` | Policy descriptor: `<limit>;w=<window-seconds>` |
 
-Every response includes `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`
-headers per the IETF draft spec.
+## When you exceed
 
-:::info Stub page
-Full content arriving as part of the docs build-out.
-:::
+You'll receive **HTTP 429** with a body:
 
+```json
+{ "error": "Too many requests", "code": "RATE_LIMITED" }
+```
+
+Plus a `Retry-After` header (in seconds) indicating when to retry.
+
+## Recommended client behaviour
+
+- Honour `Retry-After` — back off exactly as long as the header says
+- Monitor `RateLimit-Remaining` and pre-emptively slow down at &lt;10%
+- Use exponential backoff for 5xx responses but **fixed-delay backoff** for 429 (the limit is per-window, not load-driven)
+
+## Per-party limits
+
+The above are per-IP. For specific partners we can apply per-(party, IP)
+limits at a different tier — useful if you run from a NAT'd egress IP and
+several teams share it. Contact [partner@networkcore.org](mailto:partner@networkcore.org) if you need this.

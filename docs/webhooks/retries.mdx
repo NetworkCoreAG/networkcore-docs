@@ -1,10 +1,85 @@
 ---
 title: Retries & ordering
-description: "Retry semantics + what to do when you miss an event."
+description: "Retry semantics, ordering guarantees, and what to do when you miss an event."
+sidebar_position: 3
 ---
 
 # Retries & ordering
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+## Retry policy
+
+If your endpoint doesn't return a `2xx` within **10 seconds**, the hub
+retries with exponential backoff:
+
+| Attempt | After |
+|---|---|
+| 1 | 0 seconds (the original POST) |
+| 2 | 30 seconds |
+| 3 | 2 minutes |
+| 4 | 10 minutes |
+| 5 | 1 hour |
+| 6 | 6 hours |
+| 7 | 24 hours |
+
+After 7 failed attempts the delivery is **abandoned** and surfaced in your
+partner portal → Integrations → Webhook Deliveries page.
+
+Each attempt has a unique `X-NC-Delivery-ID`. The `event_id` in the payload
+stays the same — use that as your idempotency key.
+
+## What counts as success
+
+Any HTTP status `200`–`299`. Body content is ignored. Timeouts, connection
+resets, and `5xx` responses are all treated as failures.
+
+## Ordering
+
+**Within an event type, ordering is best-effort but not guaranteed.** Two
+`session.updated` events for the same session can arrive out of order under
+heavy load. Use `occurred_at` in the payload to determine the canonical order.
+
+**Across event types, ordering is not guaranteed at all.** A `session.settled`
+might arrive before the final `session.updated` for the same session. Design
+your handler to be tolerant.
+
+## Recommended handler shape
+
+```js
+async function handleNetworkCoreWebhook(req, res) {
+  // 1. Verify signature (see /webhooks/signatures)
+  if (!verifySignature(req)) return res.status(401).send();
+
+  const event = JSON.parse(req.body);
+
+  // 2. Idempotency — check if we've already processed this event_id
+  const alreadyProcessed = await db.events.exists({ event_id: event.event_id });
+  if (alreadyProcessed) return res.status(200).send('already processed');
+
+  // 3. Persist the event row FIRST (before doing real work)
+  //    This ensures we don't double-process if step 4 crashes
+  await db.events.insert(event);
+
+  // 4. Ack the hub immediately — do real work async
+  res.status(200).send('queued');
+
+  // 5. Process in a background worker
+  await queue.add('process-event', event);
+}
+```
+
+The key insight: **ack fast, process async**. A handler that does real work
+synchronously before the 200 will time out under load and trigger retries
+you don't need.
+
+## Missed events
+
+If a delivery is abandoned (after 7 retries), pull the same data via the
+backfill endpoints:
+
+- **Sessions / CDRs**: pull `/ocpi/2.2.1/emsp/cdrs?date_from=…`
+- **Settlements**: pull `/portal/v1/cpo/settlement?date_from=…`
+- **Invoices**: pull `/portal/v1/cpo/invoices?date_from=…`
+- **Chargebacks**: pull `/portal/v1/chargebacks?status=…`
+
+All four list endpoints accept date filters. Set up a daily backfill that
+covers the last 48 hours as a safety net.

@@ -1,10 +1,62 @@
 ---
 title: Inbound webhooks
-description: "Webhooks the hub receives — e.g. PSP chargeback events from DPs."
+description: "Webhooks the hub *receives* — e.g. PSP chargeback events from DPs."
+sidebar_position: 4
 ---
 
 # Inbound webhooks
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+Most webhooks flow **out** from the hub to you. A few flow **in** — the
+hub accepts asynchronous events from third parties so it can react to
+things that originate outside its own pipeline.
+
+## PSP chargeback events (DP → hub)
+
+When a DP's PSP raises a chargeback, the DP POSTs the event to the hub at:
+
+```http
+POST /dp/v1/webhook/payment
+Authorization: Bearer <DP's webhook signing secret>
+Content-Type: application/json
+```
+
+Payload:
+
+```json
+{
+  "event":             "chargeback.opened",
+  "session_id":        "<the original session id, as you saw it in OCPI>",
+  "amount":            188.50,
+  "currency":          "MXN",
+  "reason_code":       "4855_GOODS_OR_SERVICES_NOT_RECEIVED",
+  "reason_description": "Driver disputes charge — no service received",
+  "dp_psp_reference":  "stripe-cb-abc123"
+}
+```
+
+The hub responds with `HTTP 201` and the internal chargeback id:
+
+```json
+{ "ok": true, "chargeback_id": "uuid" }
+```
+
+From there the hub:
+
+1. Creates the chargeback row in `OPEN` status
+2. Triggers the [evidence pack assembler](/guides/chargeback-evidence)
+3. Notifies ops via the admin Chargebacks page
+4. Fires `chargeback.opened` outbound webhook to both CPO + DP
+
+## Settlement webhooks from payout providers
+
+The hub also accepts inbound from payout providers (STP.mx, SEPA, etc.) to
+confirm wire status:
+
+```http
+POST /stp/webhook/estado
+POST /webhooks/sdk-finance
+```
+
+These are NetworkCore-side integrations — you don't interact with them.
+They're documented here for completeness because the OCPI request log shows
+them and partners sometimes wonder what they are.

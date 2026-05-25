@@ -1,10 +1,67 @@
 ---
 title: Risk engine
-description: "How sessions are scored — explainable factor model."
+description: "The explainable factor model that scores every session and drives 3DS recommendations."
 ---
 
 # Risk engine
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+The hub scores every cleared session on a **0–100 risk scale** with an
+**explainable factor model** — every factor contributing to a score lands
+in the response so ops + DPs can understand why.
+
+## Scoring
+
+| Score | Band | Recommendation |
+|---|---|---|
+| 0–24 | `LOW` | Frictionless single capture, no 3DS, low pre-auth buffer |
+| 25–49 | `MEDIUM` | Split capture, light buffer |
+| 50–74 | `HIGH` | 3DS recommended, larger buffer, capture per-chunk |
+| 75+ | `BLOCK` | Recommend declining the authorisation |
+
+Any active `BLOCK`-severity fraud flag on the driver / device / vehicle /
+BIN forces band `BLOCK` regardless of the score.
+
+## Factor model
+
+The scoring is a linear sum of factor deltas, starting at a baseline of 5.
+Each factor is bounded so no single signal dominates. Factors include:
+
+| Factor code | Trigger | Delta |
+|---|---|---|
+| `AMT_HIGH` | Amount ≥ 5000 (in currency) | +18 |
+| `AMT_MED` | Amount ≥ 2000 | +8 |
+| `PRICE_LOW` | Cost/kWh below sane floor | +6 |
+| `PRICE_HIGH` | Cost/kWh above sane ceiling | +10 |
+| `DUR_SHORT` | Session < 1 minute with non-zero cost | +25 |
+| `VEL_24_BURST` | 10+ sessions on account in 24h | +22 |
+| `VEL_24_HIGH` | 5+ sessions on account in 24h | +10 |
+| `DP_TIER_HIGH` | DP risk tier = HIGH | +18 |
+| `DP_TIER_ELEVATED` | DP risk tier = ELEVATED | +10 |
+| `DP_TIER_LOW` | DP risk tier = LOW (good behaviour) | −5 |
+| `DP_MAT_TRUSTED` | DP maturity = TRUSTED | −5 |
+| `FLAG_BLOCK_*` | Any BLOCK flag matching scope | +50 |
+| `FLAG_WARN_*` | Any WARN flag matching scope | +12 |
+| `FP_MISSING` | DP didn't post fingerprints | +4 |
+
+## Per-session score lookup
+
+DPs read the score via:
+
+```http
+GET /portal/v1/risk/signals/{session_id}
+```
+
+See [3DS recommendation](/ev-charging/distribution-partners/threeds-recommendation) for the response shape.
+
+## Network signal propagation
+
+Fraud flags are **shared across the network** via the `fraud_flags` table.
+A flag raised on `(DEVICE, hash X)` at CPO A is visible to CPO B the next
+time the same device hash appears. This is mechanism #08 — network-wide
+shared fraud signal.
+
+## Tuning + governance
+
+Factor weights are reviewed quarterly by NetworkCore risk ops. Changes are
+announced in the [Changelog](/changelog). The published deltas above are
+the production values as of the changelog date — they may evolve.

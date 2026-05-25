@@ -1,22 +1,65 @@
 ---
 title: Sandbox
-description: "Test credentials, demo seed, Postman collection, and how to exercise the integration safely."
+description: "Test credentials, demo data, Postman collection."
 ---
 
 # Sandbox
 
-The sandbox environment mirrors production exactly — same code, same
-endpoints, same OCPI semantics. The difference is that all third-party
-integrations (STP / SDK.finance / FacturAPI) return canned responses, so no
-real money moves.
+## URL
 
-:::info Stub page
-Full content arriving as part of the docs build-out. Topics to cover:
-- Sandbox URL + how to flip your client between sandbox + production
-- Test partner accounts (CPO, CSMS, DP)
-- Postman collection (downloadable)
-- Webhook event simulator
-- Reset / re-seed endpoints
-- Common test scenarios + expected responses
+The sandbox runs at the same URL as production with sandbox-specific
+credentials issued separately. Contact [partner@networkcore.org](mailto:partner@networkcore.org)
+during onboarding to receive your sandbox Token A.
+
+## Test credentials
+
+| Role | Email | Password | Notes |
+|---|---|---|---|
+| Demo CPO | `owner@voltium.demo` | `DemoVoltium2026!` | Single-role CPO |
+| Demo DP + CPO | `owner@drivergo.demo` | `DemoDriverGo2026!` | Dual-role test profile (CPO + DP under one OCPI cc/pid) |
+
+These accounts have the full demo seed applied — sessions, CDRs,
+chargebacks, invoices, the works.
+
+## Postman collection
+
+:::info Coming soon
+A Postman collection covering every public endpoint with sandbox credentials baked in. Track [issue #1](https://github.com/NetworkCoreAG/networkcore-docs/issues/1) for status.
 :::
 
+## Demo seed
+
+The demo seed populates the sandbox with realistic data. Ops triggers
+the seed for you on request — typically right after your sandbox
+credentials are issued.
+
+| Item | Count |
+|---|---|
+| Parties | 5 (3 CPOs, 2 DPs) |
+| Locations | 12 |
+| Sessions | 150 |
+| CDRs | ~95 |
+| Cleared records | ~80 |
+| Settlement batches | ~25 |
+| Invoices | ~240 (3 per cleared session) |
+| Chargebacks | 9 across every lifecycle status |
+| Risk fingerprints | 60 (including farming + compromised clusters) |
+| Risk signals | 30 across LOW/MEDIUM/HIGH/BLOCK |
+| Fraud flags | 6 across scopes + severities |
+| BIN intelligence | 5 across all four tiers |
+| First-loss envelopes | 2 (one per CPO) |
+| Distributions | 3 (for LOST chargebacks) |
+
+## What's NOT in sandbox
+
+- Real bank wires — payouts return mock "submitted" responses
+- Real CFDI stamping — FacturAPI returns canned UUIDs + placeholder PDFs
+- Real wallet movements — SDK.finance returns canned balances
+
+Everything else (auth, OCPI validation, rate limits, idempotency, webhooks)
+behaves identically to production.
+
+## Reset
+
+Ops can wipe + re-seed the sandbox on demand. If your test data has drifted
+into a weird state, ask us to reset — takes &lt;1 minute.

@@ -1,10 +1,80 @@
 ---
 title: 3DS recommendation
-description: "Auth-hint webhook telling you when to gate a transaction with 3DS."
+description: "Auth-hint webhook telling you when to gate a transaction with 3DS — driven by NetworkCore's risk engine."
+sidebar_position: 7
 ---
 
 # 3DS recommendation
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+NetworkCore doesn't process payments — your PSP does. What we **do** is run
+a risk engine over every session and tell you whether the next authorisation
+should be gated with 3DS, based on the [explainable risk factors](/guides/risk-engine).
+
+You consume this signal in one of two ways: (a) read it inline before
+authorising, or (b) subscribe to the webhook and react async.
+
+## Read inline
+
+```http
+GET /portal/v1/risk/signals/{session_id}
+Authorization: Bearer <your partner JWT>
+```
+
+```json
+{
+  "signal": {
+    "session_id":        "uuid",
+    "risk_score":        72,
+    "risk_band":         "HIGH",
+    "factors": [
+      { "code": "AMT_HIGH",         "label": "Large session amount",        "delta": 18 },
+      { "code": "VEL_24_HIGH",      "label": "5+ sessions on this account in 24h", "delta": 10 },
+      { "code": "DP_TIER_ELEVATED", "label": "DP risk tier: ELEVATED",      "delta": 10 }
+    ],
+    "pre_auth_buffer":  220.50,
+    "capture_strategy": "SPLIT_25",
+    "recommend_3ds":    true
+  }
+}
+```
+
+- **`risk_band`**: `LOW`, `MEDIUM`, `HIGH`, `BLOCK`
+- **`recommend_3ds`**: gate the next auth with 3DS
+- **`pre_auth_buffer`**: amount to authorise (covers tariff + safety margin)
+- **`capture_strategy`**: `FULL_END`, `SPLIT_10`, `SPLIT_25`, or `DECLINE`
+
+## Subscribe to the webhook
+
+Set up a webhook endpoint in the partner portal subscribed to `risk.signal.updated`. You'll receive:
+
+```json
+{
+  "event":            "risk.signal.updated",
+  "session_id":       "uuid",
+  "risk_score":       72,
+  "risk_band":        "HIGH",
+  "recommend_3ds":    true,
+  "pre_auth_buffer":  220.50,
+  "capture_strategy": "SPLIT_25",
+  "scored_at":        "2026-04-29T11:00:01Z"
+}
+```
+
+See [Webhooks → Signature verification](/webhooks/signatures) for verifying these events.
+
+## How the recommendation is made
+
+Two paths can trigger `recommend_3ds: true`:
+
+1. **Risk band ≥ HIGH** — the [scoring engine](/guides/risk-engine) puts the session in `HIGH` or `BLOCK`
+2. **Active BLOCK flag** — any `BLOCK`-severity fraud flag on the driver / device / BIN forces 3DS regardless of score
+
+This wrap-then-flag-lookup pattern means flags raised *after* the score still
+bubble up — your PSP gets the most up-to-date signal available.
+
+## What you do with it
+
+- `recommend_3ds: false` + `band: LOW` → frictionless single capture
+- `recommend_3ds: false` + `band: MEDIUM` → frictionless but split the capture
+- `recommend_3ds: true` + `band: HIGH` → 3DS challenge, split capture (`SPLIT_25`)
+- `recommend_3ds: true` + `band: BLOCK` → recommend declining the authorisation

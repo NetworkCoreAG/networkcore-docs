@@ -22,7 +22,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title:    'NetworkCore Docs',
   tagline:  'OCPI 2.2.1 hub for CPOs, CSMS, and Distribution Partners',
-  favicon:  'img/favicon.svg',
+  favicon:  'img/favicon-180.png',
 
   future: { v4: true },
 
@@ -71,18 +71,28 @@ const config: Config = {
     ],
     // Redocusaurus preset temporarily disabled — known marked.js incompat
     // when rendering certain markdown patterns in OpenAPI description fields.
-    // Tracked at: https://github.com/redocly/redoc/issues (similar reports).
     // For Phase 1 we ship a placeholder /api-reference page that links to
-    // the raw spec; the auto-rendered version comes back online after the
-    // spec is cleaned up or the Redocusaurus version is bumped.
-    //
-    // [
-    //   'redocusaurus',
-    //   {
-    //     specs: [{ id: 'hub-api', spec: 'static/openapi.yaml', route: '/api-reference/' }],
-    //     theme: { primaryColor: '#1A3554' },
-    //   },
-    // ],
+    // the raw spec; auto-render comes back once the spec descriptions are
+    // cleaned up.
+  ],
+
+  // ── Plugins ───────────────────────────────────────────────────────────────
+  plugins: [
+    // Local full-text search — indexes at build time, served as static JSON,
+    // no external service (no Algolia application waiting period). Adds a
+    // search bar to the navbar and ⌘+K shortcut.
+    [
+      require.resolve('@easyops-cn/docusaurus-search-local'),
+      {
+        hashed:                  true,    // cache-busts the index on each build
+        indexBlog:               false,   // we don't have a blog
+        indexPages:              true,    // index custom pages too
+        docsRouteBasePath:       '/',     // matches presets.classic.docs.routeBasePath
+        highlightSearchTermsOnTargetPage: true,
+        searchResultLimits:      8,
+        explicitSearchResultPath: true,
+      },
+    ],
   ],
 
   // ── Theme ─────────────────────────────────────────────────────────────────
@@ -94,14 +104,18 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
 
-    // Attrus-style top nav — minimal, dark background, brand mark on the left,
-    // role-targeted entry points + API ref + GitHub link on the right.
+    // Attrus-style top nav — minimal, dark background, full wordmark on the
+    // left (logo glyph + "NetworkCore" rendered as a single image so the
+    // typography matches the brand exactly, not a web-font approximation).
+    // `title` is intentionally omitted so we don't render text beside the image.
     navbar: {
-      title: 'NetworkCore',
       logo: {
         alt:     'NetworkCore',
-        src:     'img/logo-mark.png',
-        srcDark: 'img/logo-mark.png',
+        src:     'img/logo-wordmark.png',
+        srcDark: 'img/logo-wordmark.png',
+        href:    '/',
+        target:  '_self',
+        height:  '24px',
       },
       items: [
         {
@@ -160,7 +174,7 @@ const config: Config = {
         {
           title: 'NetworkCore',
           items: [
-            { label: 'Marketing site',  href: 'https://www.networkcore.org' },
+            { label: 'Website',         href: 'https://www.networkcore.org' },
             { label: 'Partner portal',  href: 'https://hub.networkcore.org/partner/ui/' },
             { label: 'Contact',         href: 'mailto:partner@networkcore.org' },
           ],

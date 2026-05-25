@@ -1,10 +1,45 @@
 ---
 title: Sessions
-description: "Session lifecycle from the CPO/CSMS push side."
+description: "Session lifecycle from the CPO / CSMS push side."
+sidebar_position: 5
 ---
 
 # Sessions
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+A session represents a single charging event from plug-in to unplug. You
+PUT a session when it starts, PATCH it with progress updates while charging,
+and finalise with a `status: "COMPLETED"`. The CDR (the immutable billing
+record) is posted **separately** once the session ends.
+
+See **[OCPI Integration → §5.2](/ev-charging/charging-software/ocpi-integration#52-push-a-session-start)** for the worked PUT example.
+
+## Lifecycle
+
+```
+ACTIVE → COMPLETED   (normal end)
+ACTIVE → INVALID     (something went wrong — the CDR will reference this status)
+```
+
+| Status | When |
+|---|---|
+| `ACTIVE` | Session in progress |
+| `COMPLETED` | Driver unplugged, session ended cleanly |
+| `INVALID` | Session aborted or in an error state |
+| `PENDING` | Awaiting confirmation (less common) |
+| `RESERVATION` | Pre-allocated to a driver, not yet charging |
+
+## Update frequency
+
+- **Start**: PUT once when the session begins
+- **Progress**: PATCH every 30–60 seconds with new `kwh` + `last_updated` while charging — drives the live experience in the DP's app
+- **End**: PATCH with `status: "COMPLETED"` + final `kwh`
+- **Post-CDR**: don't PATCH after the CDR is posted; the CDR is the authoritative record
+
+## Required fields at start
+
+`id`, `country_code`, `party_id`, `start_date_time`, `kwh` (=0 at start),
+`cdr_token`, `auth_method`, `location_id`, `evse_uid`, `connector_id`,
+`currency`, `status`, `last_updated`.
+
+`cdr_token` must match a token the eMSP previously PUT to the hub — otherwise
+you get `status_code: 2004 Unknown token`.

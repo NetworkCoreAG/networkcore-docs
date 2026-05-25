@@ -1,10 +1,58 @@
 ---
 title: Pulling locations
-description: "Initial catalogue sync + incremental updates."
+description: "Initial catalogue sync + incremental updates of the OCPI location list."
+sidebar_position: 2
 ---
 
 # Pulling locations
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+On first integration, do a full pull so your in-app map shows every CPO
+station. After that, use `date_from` on subsequent calls to fetch only changed
+locations — the hub updates `last_updated` on every PATCH.
+
+## Initial sync
+
+```http
+GET /ocpi/2.2.1/emsp/locations?limit=100&offset=0&date_from=2026-01-01T00:00:00Z
+Authorization: Token TOKEN_C
+X-Request-ID: bf92c8d4-7f83-4c5e-c091-5c0e3f6e7e84
+X-Correlation-ID: bf92c8d4-7f83-4c5e-c091-5c0e3f6e7e84
+```
+
+**Response** — `HTTP 200`:
+
+```json
+{
+  "status_code": 1000,
+  "data": [
+    { /* full Location object */ }
+  ],
+  "timestamp": "2026-04-29T10:01:00Z"
+}
+```
+
+The response also includes an `X-Total-Count` header with the full result-set size.
+
+## Pagination
+
+Paginate by incrementing `offset` until `data.length < limit`. The
+`X-Total-Count` response header tells you the full result-set size upfront so
+you can plan the loop. `limit` is capped server-side at 1000.
+
+## Incremental updates
+
+After your initial sync, store the timestamp and use `date_from` to fetch
+only locations that changed:
+
+```http
+GET /ocpi/2.2.1/emsp/locations?date_from=2026-04-29T00:00:00Z&limit=100
+```
+
+A practical pattern: run an incremental pull every 5–15 minutes, and a
+full pull (no `date_from`) once a week as a safety net for missed updates.
+
+## Location shape
+
+The objects returned mirror the OCPI 2.2.1 Location spec — see the [CPO
+push example](/ev-charging/charging-software/ocpi-integration#51-push-a-location)
+for the full structure including EVSEs + connectors.

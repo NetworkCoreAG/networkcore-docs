@@ -41,18 +41,18 @@ The hub accepts every authentication method OCPI 2.2.1 specifies:
 
 OCPI 2.2.1 modules implemented by the hub:
 
-| Module | Sender (you push) | Receiver (you pull) |
-|---|---|---|
-| **Locations** | CPO → hub | DP, hub → DP |
-| **Sessions** | CPO → hub | DP, hub → DP |
-| **CDRs** | CPO → hub | DP, hub → DP |
-| **Tariffs** | CPO → hub | DP, hub → DP |
-| **Tokens** | DP → hub | CPO authorisation requests |
-| **Commands** | DP → hub | CPO acks the result |
-| **Credentials** | both directions during handshake | — |
-| **Versions** | discovery endpoint | — |
+| Module | Sender (you push) | Receiver (you pull) | URL pattern |
+|---|---|---|---|
+| **Versions**     | — | discovery | `GET /ocpi/versions` |
+| **Credentials**  | both | both | `/ocpi/2.2.1/credentials` |
+| **Locations**    | CPO → hub | hub → DP | `/ocpi/2.2.1/cpo/locations/{cc}/{party_id}/{location_id}` |
+| **Sessions**     | CPO → hub | hub → DP | `/ocpi/2.2.1/cpo/sessions/{cc}/{party_id}/{session_id}` |
+| **CDRs**         | CPO → hub | DP, hub → DP | `POST /ocpi/2.2.1/cpo/cdrs` |
+| **Tariffs**      | CPO → hub | DP, hub → DP | `/ocpi/2.2.1/cpo/tariffs/{cc}/{party_id}/{tariff_id}` |
+| **Tokens**       | DP → hub | CPO authorisation requests | `/ocpi/2.2.1/emsp/tokens/{cc}/{party_id}/{token_uid}` |
+| **Commands**     | DP → hub | CPO acks the result | `POST /ocpi/2.2.1/cpo/commands/{command}` |
 
-Full endpoint reference under [API Reference](/api-reference/).
+Full endpoint reference under [API Reference](/api-reference).
 
 ## 3. Handshake (registration)
 
@@ -98,89 +98,218 @@ OCPI-to-party-id:       NCR
 
 The `X-Request-ID` and `X-Correlation-ID` are echoed back on every response — the hub mirrors them for cross-system traceability.
 
-## 5. Example flows
-
-The flows split by who's pushing and who's pulling:
-
-### CPO push-side flows
-
-These are the bread and butter of a CPO/CSMS integration:
-
-- **Push a location** — onboarding a new site
-- **Push a session start** — driver plugged in, charge began
-- **Push a session update** — periodic kWh updates during charging
-- **Post a CDR** — the immutable billing record once the session ends
-- **Push a tariff** — your pricing rules
-
-:::info Coming soon
-Worked examples (curl + payload schemas) for each CPO push flow are being
-migrated from the existing hub integration guide. In the meantime, the
-[live integration guide on hub.networkcore.org](https://hub.networkcore.org/docs/ocpi-integration.html#examples)
-covers all five with complete examples.
+:::info Why "optional today" on the OCPI-from/to-* headers?
+This hub currently terminates calls itself rather than forwarding them between parties, so the routing context isn't strictly needed. We accept and log them when present, and may tighten validation in a future release. Senders that follow the spec strictly will not notice a difference.
 :::
 
-### DP pull-side flows
+## 5. Example flows — CPO push side
 
-If you're a Distribution Partner, see the
-[DP integration guide](/ev-charging/distribution-partners/handshake) for the
-pull-side examples (location catalogue sync, session monitoring, CDR pulls,
-remote start).
+The CPO push examples are below. For the DP pull-side equivalents (location catalogue sync, session monitoring, CDR pulls, remote start), see the [Distribution Partner guide](/ev-charging/distribution-partners/handshake).
 
-## 6. Error responses
+### 5.1 Push a location
 
-OCPI uses a soft-error envelope: HTTP 200 with a `status_code` in the body.
+```http
+PUT /ocpi/2.2.1/cpo/locations/MX/CPX/LOC001
+Authorization: Token TOKEN_C
+X-Request-ID: 7c5a2c92-3b4f-4e1c-9c4d-1e7b9c2a3a40
+X-Correlation-ID: 7c5a2c92-3b4f-4e1c-9c4d-1e7b9c2a3a40
+Content-Type: application/json
+```
 
 ```json
 {
-  "status_code": 2001,
-  "status_message": "Invalid or missing parameters",
-  "timestamp": "2026-05-22T08:30:00.000Z",
-  "data": null
+  "id":           "LOC001",
+  "country_code": "MX",
+  "party_id":     "CPX",
+  "publish":      true,
+  "name":         "Example CPO Site #1",
+  "address":      "Av. Example 123",
+  "city":         "Mexico City",
+  "country":      "MEX",
+  "coordinates":  { "latitude": "19.4326", "longitude": "-99.1900" },
+  "time_zone":    "America/Mexico_City",
+  "evses": [
+    {
+      "uid":    "LOC001-EVSE-1",
+      "status": "AVAILABLE",
+      "connectors": [
+        {
+          "id":           "1",
+          "standard":     "IEC_62196_T1_COMBO",
+          "format":       "CABLE",
+          "power_type":   "DC",
+          "max_voltage":  400,
+          "max_amperage": 125,
+          "tariff_ids":   ["TARIFF-DEFAULT"],
+          "last_updated": "2026-04-29T12:00:00Z"
+        }
+      ],
+      "last_updated": "2026-04-29T12:00:00Z"
+    }
+  ],
+  "last_updated": "2026-04-29T12:00:00Z"
 }
 ```
 
-| Status code | Meaning |
-|---|---|
-| `1000` | Success |
-| `2000` | Generic client error |
-| `2001` | Invalid or missing parameters |
-| `2002` | Not enough information |
-| `2003` | Unknown location |
-| `2004` | Unknown EVSE |
-| `3000` | Generic server error |
-| `3001` | Unable to use the OCPI client to push update |
-| `3002` | Unsupported version |
-| `3003` | No matching endpoints |
+**Response** — `HTTP 200`:
 
-A handful of conditions return regular HTTP status codes instead:
+```json
+{ "status_code": 1000, "data": null, "timestamp": "2026-04-29T12:00:01Z" }
+```
 
-| Status | Cause |
+### 5.2 Push a session start
+
+```http
+PUT /ocpi/2.2.1/cpo/sessions/MX/CPX/S1234
+Authorization: Token TOKEN_C
+X-Request-ID: 8d6b3da1-4c50-4f2d-9d5e-2f8c0d3b4b51
+X-Correlation-ID: 8d6b3da1-4c50-4f2d-9d5e-2f8c0d3b4b51
+Content-Type: application/json
+```
+
+```json
+{
+  "id":              "S1234",
+  "country_code":    "MX",
+  "party_id":        "CPX",
+  "start_date_time": "2026-04-29T10:15:00Z",
+  "kwh":             0,
+  "cdr_token": {
+    "country_code": "MX",
+    "party_id":     "EMP",
+    "uid":          "5b1f8e1f-c0e3-4a8b-95a8-2d5f8e9c1aaa",
+    "type":         "APP_USER",
+    "contract_id":  "MX-EMP-CONTRACT-12345"
+  },
+  "auth_method":  "AUTH_REQUEST",
+  "location_id":  "LOC001",
+  "evse_uid":     "LOC001-EVSE-1",
+  "connector_id": "1",
+  "currency":     "MXN",
+  "status":       "ACTIVE",
+  "last_updated": "2026-04-29T10:15:00Z"
+}
+```
+
+Update the same session URL (`PUT`) periodically with new `kwh` + `last_updated` values to drive live progress in the DP's app. Once finalised, set `status: "COMPLETED"`.
+
+### 5.3 Post a CDR (final billing record)
+
+CDRs are the immutable settlement-of-record. **The hub clears off the CDR**, not off the session — sessions can be re-pushed and corrected, CDRs cannot.
+
+```http
+POST /ocpi/2.2.1/cpo/cdrs
+Authorization: Token TOKEN_C
+X-Request-ID: 9e7c4eb2-5d61-4a3e-ae6f-3a9d1e4c5c62
+X-Correlation-ID: 9e7c4eb2-5d61-4a3e-ae6f-3a9d1e4c5c62
+Content-Type: application/json
+```
+
+```json
+{
+  "id":              "CDR-S1234",
+  "country_code":    "MX",
+  "party_id":        "CPX",
+  "start_date_time": "2026-04-29T10:15:00Z",
+  "end_date_time":   "2026-04-29T11:00:00Z",
+  "session_id":      "S1234",
+  "cdr_token": {
+    "country_code": "MX",
+    "party_id":     "EMP",
+    "uid":          "5b1f8e1f-c0e3-4a8b-95a8-2d5f8e9c1aaa",
+    "type":         "APP_USER",
+    "contract_id":  "MX-EMP-CONTRACT-12345"
+  },
+  "auth_method":  "AUTH_REQUEST",
+  "cdr_location": {
+    "id":           "LOC001",
+    "address":      "Av. Example 123",
+    "city":         "Mexico City",
+    "country":      "MEX",
+    "coordinates":  { "latitude": "19.4326", "longitude": "-99.1900" },
+    "evse_uid":     "LOC001-EVSE-1",
+    "connector_id": "1",
+    "connector_standard":   "IEC_62196_T1_COMBO",
+    "connector_format":     "CABLE",
+    "connector_power_type": "DC"
+  },
+  "currency":     "MXN",
+  "charging_periods": [
+    {
+      "start_date_time": "2026-04-29T10:15:00Z",
+      "dimensions": [
+        { "type": "ENERGY", "volume": 25.0 },
+        { "type": "TIME",   "volume": 0.75 }
+      ]
+    }
+  ],
+  "total_cost":   { "excl_vat": 162.50, "incl_vat": 188.50 },
+  "total_energy": 25.0,
+  "total_time":   0.75,
+  "last_updated": "2026-04-29T11:00:01Z"
+}
+```
+
+:::tip CDR triggers financial clearing
+As soon as the hub validates the CDR against the locked tariff, it computes
+CPO / DP / NetworkCore splits and queues the settlement payout on the rail
+configured for the party's operating currency (CLABE for MXN, IBAN for EUR/CHF,
+ACH for USD, etc.). See [Settlement & payouts](/ev-charging/charging-software/settlement).
+:::
+
+## 6. Error responses
+
+All OCPI responses — including errors — follow the standard envelope:
+
+```json
+{
+  "status_code":    2001,
+  "status_message": "Invalid CDR — total_cost.excl_vat is required",
+  "timestamp":      "2026-04-29T12:34:56Z"
+}
+```
+
+### OCPI status codes returned by this hub
+
+| Code | Meaning | Common cause |
+|---|---|---|
+| `1000` | Success | — |
+| `2001` | Invalid or missing parameters | Required field missing or wrong type. Validation failures collapse into this code rather than the spec's `2000` generic |
+| `2002` | Not enough information | Mostly happens during credentials registration when the body is incomplete |
+| `2003` | Unknown location | Pushed a CDR or session referencing a `location_id` the hub has never seen |
+| `2004` | Unknown token | Token UID referenced in a session or CDR is not registered with the hub |
+| `3000` | Generic server error | Auth failures and unhandled exceptions both surface here. The `status_message` tells you which |
+| `3001` | Unable to use the client's API | The hub tried to call your endpoint (e.g. during handshake) and it failed |
+| `3002` | Unsupported version | Send 2.2.1 — no 2.1.1 / 2.2 fallback |
+| `3003` | No matching endpoints | Check the module URL pattern table above |
+
+### HTTP status semantics
+
+Per OCPI 2.2.1 spec, almost every response — including auth failures and validation errors — is delivered as **HTTP 200** with the failure detail inside the OCPI envelope. Always inspect `status_code` rather than the HTTP status alone.
+
+| HTTP | When |
 |---|---|
-| `401` | Token A/C missing or invalid |
-| `404` | Unknown URL |
+| `200` | Request reached the hub and was processed. Inspect `status_code` in the body for OCPI-level outcome (`1000` success, `2xxx` client error, `3xxx` server error) |
+| `404` | Unknown OCPI route (typo in path or undocumented module). Returns a generic JSON error, not an OCPI envelope |
 | `422` | PAN-shaped data detected in payload (mechanism #13 — network tokens, no PAN) |
-| `429` | Rate limit exceeded |
-| `503` | Hub overloaded or briefly unavailable |
+| `429` | Rate limited. The hub allows 500 requests per minute per source IP across all `/ocpi/*` endpoints, sliding window |
+| `5xx` | Hub-side incident. Retry with exponential backoff — push endpoints are idempotent on `(country_code, party_id, id)` keys |
+
+:::info Auth failures also return HTTP 200
+Missing header, unknown token, or suspended party all return **HTTP 200** with `status_code: 3000` — per OCPI spec. Always look at the body envelope, not just the HTTP code.
+:::
 
 ## 7. Testing & sandbox
 
-The sandbox runs the same code with `MOCK_INTEGRATIONS=true` — all external
-integrations (SDK.finance, STP, FacturAPI) return canned responses. Real
-session data, real CDR shapes, no real money moves.
+The hub runs an identical sandbox with `MOCK_INTEGRATIONS=true` — all
+external integrations (SDK.finance, STP, FacturAPI) return canned responses.
+Real session data, real CDR shapes, no real money moves.
 
-See [Sandbox](/sandbox) for test credentials + the Postman collection.
+See the [Sandbox page](/sandbox) for test credentials, the Postman
+collection, and the demo seed.
 
 ## 8. Support
 
-- **Technical issues**: `partner@networkcore.org`
+- **Technical issues**: [partner@networkcore.org](mailto:partner@networkcore.org)
 - **Open an issue** on the [docs repo](https://github.com/NetworkCoreAG/networkcore-docs/issues) if something here is wrong
 - **Self-service**: partner portal at [hub.networkcore.org/partner/ui](https://hub.networkcore.org/partner/ui/)
-
----
-
-:::note Migration status
-This page is the new home for the OCPI integration guide. The legacy guide
-at [hub.networkcore.org/docs/ocpi-integration.html](https://hub.networkcore.org/docs/ocpi-integration.html)
-remains live during the transition. Once this MDX version has worked-example
-parity, the legacy URL will 301-redirect here.
-:::

@@ -1,10 +1,79 @@
 ---
-title: Commands
-description: "Handling remote start/stop commands from Distribution Partners."
+title: Commands (remote start / stop)
+description: "Handling remote start / stop commands from Distribution Partners."
+sidebar_position: 8
 ---
 
-# Commands
+# Commands (remote start / stop)
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+When a Distribution Partner wants to start a session for a driver (typically
+from in their app), they POST a `START_SESSION` command to the hub. The hub
+routes it to you (the CPO operating the EVSE) via your registered receiver
+endpoint. Your CSMS attempts to start the session and POSTs the asynchronous
+result back to the DP's `response_url`.
+
+See **[Distribution Partners → Remote start / stop](/ev-charging/distribution-partners/commands)**
+for the DP-side worked example.
+
+## Receive a command
+
+The DP POSTs to the hub, the hub forwards to your endpoint:
+
+```http
+POST <your-csms>/ocpi/2.2.1/cpo/commands/START_SESSION
+Authorization: Token <your Token C, set during handshake>
+```
+
+```json
+{
+  "response_url": "<hub-relayed DP response URL>",
+  "token": { /* OCPI Token object */ },
+  "location_id":  "LOC001",
+  "evse_uid":     "LOC001-EVSE-1",
+  "connector_id": "1",
+  "authorization_reference": "auth-ref-abc123"
+}
+```
+
+## Synchronous ack
+
+Reply immediately with the standard envelope:
+
+```json
+{
+  "status_code": 1000,
+  "data": { "result": "ACCEPTED", "timeout": 30 },
+  "timestamp": "2026-04-29T10:14:50Z"
+}
+```
+
+`ACCEPTED` here means "I received the command and I'm acting on it" — not
+"the session started". The actual outcome comes later.
+
+## Async result
+
+Once your CSMS attempts the actual start (or hits a failure), POST the
+result to the `response_url` provided in the command:
+
+```http
+POST <response_url>
+Content-Type: application/json
+```
+
+```json
+{
+  "result":    "ACCEPTED",
+  "timestamp": "2026-04-29T10:15:01Z"
+}
+```
+
+Result values: see [Distribution Partners → Remote start / stop](/ev-charging/distribution-partners/commands#the-async-result).
+
+## Other commands you'll receive
+
+- `STOP_SESSION` — stop an ongoing session by session_id
+- `CANCEL_RESERVATION` — release a prior reservation
+- `RESERVE_NOW` — pre-allocate an EVSE for a future driver
+- `UNLOCK_CONNECTOR` — release a stuck connector
+
+All four follow the same sync-ack + async-result pattern.

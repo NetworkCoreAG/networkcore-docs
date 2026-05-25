@@ -1,10 +1,76 @@
 ---
 title: Driver API (embedded)
-description: "For DPs who embed full driver UX — history, invoices, push notifications."
+description: "Per-driver endpoints for DPs that embed the full driver UX — history, invoices, push notifications, preferences."
+sidebar_position: 8
 ---
 
 # Driver API (embedded)
 
-:::info Stub page
-Deep-dive content arriving as part of the docs build-out.
-:::
+For DPs that embed a full driver experience in their app — session history,
+invoice viewing, push-notification preferences — the hub exposes a per-driver
+API scoped by `dp_driver_ref` (the opaque driver identifier you provide).
+
+All endpoints sit under `/dp/v1/drivers/{dp_driver_ref}` and require your
+DP-scoped auth header.
+
+## Driver session history
+
+```http
+GET /dp/v1/drivers/{dp_driver_ref}/sessions?limit=20&offset=0
+```
+
+Returns the driver's recent charging sessions with kWh, cost, location.
+
+## Driver invoices
+
+```http
+GET /dp/v1/drivers/{dp_driver_ref}/invoices?limit=20&offset=0
+```
+
+Returns the driver's CFDI invoices (Mexico) or equivalent format per region. Each invoice has a `pdf_url` + `xml_url`.
+
+## Notification preferences
+
+```http
+GET   /dp/v1/drivers/{dp_driver_ref}/notifications/prefs
+PATCH /dp/v1/drivers/{dp_driver_ref}/notifications/prefs
+```
+
+```json
+{
+  "session_started":      true,
+  "session_completed":    true,
+  "invoice_issued":       true,
+  "preferred_channels":   ["push", "email"]
+}
+```
+
+## Push token registration
+
+```http
+POST /dp/v1/drivers/push-token
+Content-Type: application/json
+
+{
+  "dp_driver_ref": "your-internal-driver-id",
+  "platform":      "ios",
+  "token":         "<APNs device token>"
+}
+```
+
+The hub uses this to send `session.started`, `session.completed`, and
+`invoice.issued` push notifications directly to the driver — gated by the
+driver's notification prefs above.
+
+## Embedding pattern
+
+A typical DP-driver-UX flow:
+
+1. Driver signs into your app
+2. Your backend resolves their `dp_driver_ref` and your DP-scoped auth
+3. Your backend calls the driver API on the driver's behalf and renders the data
+4. The driver's mobile app registers its push token via `/dp/v1/drivers/push-token`
+5. The driver gets push notifications for their sessions + invoices
+
+See [refunds & disputes](/ev-charging/distribution-partners/refunds-disputes)
+for filing refund requests on a driver's behalf.
