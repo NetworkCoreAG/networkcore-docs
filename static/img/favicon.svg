@@ -1,0 +1,25 @@
+<!--
+  NetworkCore favicon — the canonical brand mark on a square transparent
+  background. Same geometry + gradient as the marketing-site logo so
+  browsers + iOS home-screen see the actual NetworkCore brand colour
+  (navy gradient #7BA3C7 → #1A3554), not an invented variant.
+
+  Square viewBox (220×220) with the mark vertically centered so it renders
+  cleanly at 16px / 32px / 180px.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -60 220 220" fill="none" role="img" aria-label="NetworkCore">
+  <defs>
+    <linearGradient id="nc-fav-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#7BA3C7"/>
+      <stop offset="100%" stop-color="#1A3554"/>
+    </linearGradient>
+  </defs>
+  <g stroke="url(#nc-fav-grad)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Central diamond -->
+    <polygon points="110,10 152,50 110,90 68,50"/>
+    <!-- Left loop -->
+    <path d="M 68 50 C 40 22, 8 36, 8 56 C 8 76, 40 78, 68 50 Z"/>
+    <!-- Right loop -->
+    <path d="M 152 50 C 180 22, 212 36, 212 56 C 212 76, 180 78, 152 50 Z"/>
+  </g>
+</svg>

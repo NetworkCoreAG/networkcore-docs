@@ -1,0 +1,24 @@
+---
+title: Core concepts
+description: "Parties, sessions, clearing, settlement — the platform vocabulary."
+---
+
+# Core concepts
+
+The NetworkCore hub talks about four core entities. The same vocabulary
+applies whether you're integrating EV charging today or a different vertical
+later — only the payload shapes change.
+
+- **Party** — any counterparty registered with the hub (CPO, CSMS, DP, hub itself).
+  Identified by OCPI `country_code` + `party_id`.
+- **Session** — a unit of value exchange between two parties. In EV charging,
+  this is a charging session. In future verticals, it could be any metered service.
+- **Clearing record** — the immutable split of a session's revenue between CPO, DP, and the hub. Generated when payment confirms.
+- **Settlement batch** — a payout to a party for a period's worth of cleared
+  sessions. Sent over SPEI / SEPA / local rails.
+
+:::info Stub page
+Full content arriving as part of the docs build-out. See the
+[hub source](https://github.com/NetworkCoreAG/Platform) if you need depth in the meantime.
+:::
+

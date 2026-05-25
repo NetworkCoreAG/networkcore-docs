@@ -1,0 +1,35 @@
+---
+title: For CPOs & CSMS
+description: "Integration guide for Charge Point Operators and Charging Station Management Systems pushing into the hub."
+---
+
+# For CPOs & CSMS
+
+The OCPI integration model is **identical** whether you're a single CPO
+operating your own chargers or a CSMS (Ampeco, Driivz, Monta, ChargePoint, etc.)
+serving multiple CPOs. The same endpoints, the same handshake — what differs
+is how you map your underlying CPO entities to OCPI `(country_code, party_id)`
+identifiers.
+
+## Start here
+
+1. **[OCPI Integration overview](/ev-charging/charging-software/ocpi-integration)** — full reference for the OCPI 2.2.1 push surface
+2. Then pick your setup pattern:
+   - **[Single CPO setup](/ev-charging/charging-software/single-cpo-setup)** — one CPO, one party_id, one handshake
+   - **[Multi-CPO / CSMS setup](/ev-charging/charging-software/multi-cpo-csms-setup)** — one CSMS hosting many CPOs, one handshake per party_id
+
+## What you'll push
+
+- **Locations** — charging sites + EVSEs + connectors
+- **Sessions** — start/update/stop events
+- **CDRs** — final billing records (the source of truth for settlement)
+- **Tariffs** — locked at session start; CDR amount must reconcile
+- **Command acks** — responses to DP-initiated remote start/stop
+
+## What you'll consume
+
+- **Tokens** — drivers' OCPI tokens, issued by DPs
+- **Commands** — remote-start / remote-stop requests from DPs
+- **Settlement payouts** — wire transfers + remittance reports
+- **Chargebacks** — evidence pack assembled by the hub, your action on resolution
+

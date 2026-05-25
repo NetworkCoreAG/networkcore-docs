@@ -1,0 +1,19 @@
+---
+title: Webhooks
+description: "Async events you can subscribe to + the inbound webhooks the hub accepts from third parties."
+---
+
+# Webhooks
+
+Webhooks are how the hub tells you about asynchronous things — session
+settled, invoice issued, chargeback opened, payout completed. You configure
+endpoints in the partner portal; the hub POSTs JSON to them and retries on
+failure.
+
+## In this section
+
+- [**Signature verification**](/webhooks/signatures) — confirming a webhook really came from the hub
+- [**Event catalogue**](/webhooks/events) — every event we send, with payload schemas
+- [**Retries & ordering**](/webhooks/retries) — what to expect on failures
+- [**Inbound webhooks**](/webhooks/inbound) — webhooks the hub *receives* (PSP chargeback events from DPs)
+

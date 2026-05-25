@@ -1,0 +1,140 @@
+/**
+ * NetworkCore Docs — global styles.
+ *
+ * Mirrors the design tokens used in hub.networkcore.org/shared/tokens.css
+ * so the docs site reads as part of the same product family. Layout
+ * patterns lean on the Attrus / Stripe convention: dark top nav, light
+ * content area, generous whitespace, restrained accent colour.
+ *
+ * Infima is Docusaurus's built-in CSS layer — we just override its
+ * variables to map onto our brand.
+ */
+
+:root {
+  /* ── Brand colours (mapped from /shared/tokens.css) ──────────────────── */
+  --ifm-color-primary:          #1A3554;   /* navy gradient endpoint — primary brand */
+  --ifm-color-primary-dark:     #15293f;
+  --ifm-color-primary-darker:   #11243a;
+  --ifm-color-primary-darkest:  #0a1b2d;
+  --ifm-color-primary-light:    #1f3f63;
+  --ifm-color-primary-lighter:  #2d557f;
+  --ifm-color-primary-lightest: #7BA3C7;   /* navy gradient start */
+
+  /* Accent (used by the hub admin for "active" + links) — kept consistent */
+  --ifm-color-secondary:        #2563eb;
+  --ifm-link-color:             #1d4ed8;
+  --ifm-link-hover-color:       #1A3554;
+
+  /* Backgrounds */
+  --ifm-background-color:       #ffffff;
+  --ifm-background-surface-color: #f9fafb;
+
+  /* Type — same fallback chain as the hub */
+  --ifm-font-family-base: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+                          Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ifm-font-family-monospace: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --ifm-code-font-size:         93%;
+
+  /* Subtle borders + shadows — borrowed from /shared/tokens.css */
+  --ifm-toc-border-color:       #e5e7eb;
+  --ifm-color-emphasis-200:     #e5e7eb;
+  --ifm-color-emphasis-300:     #d1d5db;
+
+  /* Highlighted line in code blocks */
+  --docusaurus-highlighted-code-line-bg: rgba(26, 53, 84, 0.08);
+
+  /* Navbar height — a bit taller than default so the logo breathes */
+  --ifm-navbar-height: 64px;
+}
+
+/* ── Dark mode ──────────────────────────────────────────────────────────── */
+[data-theme='dark'] {
+  --ifm-color-primary:          #7BA3C7;   /* light navy reads well on dark */
+  --ifm-color-primary-dark:     #5e8db5;
+  --ifm-color-primary-darker:   #517fa6;
+  --ifm-color-primary-darkest:  #406d92;
+  --ifm-color-primary-light:    #98b9d3;
+  --ifm-color-primary-lighter:  #a7c4d9;
+  --ifm-color-primary-lightest: #cce0ee;
+
+  --ifm-color-secondary:        #60a5fa;
+  --ifm-link-color:              #93c5fd;
+  --ifm-link-hover-color:        #bfdbfe;
+
+  --ifm-background-color:        #0a1424;
+  --ifm-background-surface-color: #0f1d33;
+
+  --docusaurus-highlighted-code-line-bg: rgba(123, 163, 199, 0.14);
+}
+
+/* ── Navbar: dark band, light content (Attrus pattern) ──────────────────── */
+.navbar {
+  background-color: #0a1424;
+  border-bottom: none;
+}
+.navbar__title,
+.navbar__link {
+  color: rgba(255, 255, 255, 0.86);
+}
+.navbar__link:hover,
+.navbar__link--active {
+  color: #ffffff;
+}
+.navbar__brand .navbar__logo img {
+  filter: brightness(0) invert(1);   /* render brand mark in white on dark nav */
+  height: 26px;
+}
+/* On the docs site itself we go dark-on-dark for navbar, so the search +
+   theme toggle icons need a light tint */
+[data-theme='light'] .navbar .clean-btn { color: rgba(255,255,255,0.7); }
+[data-theme='light'] .navbar .clean-btn:hover { color: #ffffff; background: rgba(255,255,255,.08); }
+
+/* ── Sidebar polish ─────────────────────────────────────────────────────── */
+.menu {
+  font-size: 14px;
+}
+.menu__link {
+  border-radius: 6px;
+}
+.menu__link--active {
+  font-weight: 600;
+}
+
+/* ── Article + headings ─────────────────────────────────────────────────── */
+article header h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+h2, h3, h4 {
+  letter-spacing: -0.01em;
+}
+
+/* ── Code blocks: a hair more padding + subtle border ────────────────────── */
+.theme-code-block {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+}
+
+/* ── Inline code: pill-style chip ───────────────────────────────────────── */
+code {
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+}
+
+/* ── Tables: less aggressive borders, more breathing room ──────────────── */
+table {
+  display: table;
+  width: 100%;
+}
+table th {
+  background: var(--ifm-background-surface-color);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.footer {
+  --ifm-footer-background-color: #0a1424;
+  --ifm-footer-link-color: rgba(255, 255, 255, 0.72);
+  --ifm-footer-title-color: #ffffff;
+  --ifm-footer-color: rgba(255, 255, 255, 0.5);
+}

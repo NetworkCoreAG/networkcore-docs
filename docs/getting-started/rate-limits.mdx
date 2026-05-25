@@ -1,0 +1,24 @@
+---
+title: Rate limits
+description: "Per-tier rate limits + how to read the response headers."
+---
+
+# Rate limits
+
+The hub applies rate limits per IP + endpoint cluster:
+
+| Cluster | Limit (per minute) |
+|---|---|
+| `/ocpi/*` | 500 |
+| `/admin/*` | 30 |
+| `/portal/v1/*` | 60 |
+| `/dp/v1/*` | 100 |
+| Webhook receivers | 10–30 (varies) |
+
+Every response includes `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`
+headers per the IETF draft spec.
+
+:::info Stub page
+Full content arriving as part of the docs build-out.
+:::
+

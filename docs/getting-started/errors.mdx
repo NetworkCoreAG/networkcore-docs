@@ -1,0 +1,31 @@
+---
+title: Error responses
+description: "Uniform error response shape across all endpoints."
+---
+
+# Error responses
+
+All non-OCPI endpoints return errors in a consistent shape:
+
+```json
+{
+  "error": "human-readable message",
+  "code":  "VALIDATION_FAILED",
+  "details": { /* optional, endpoint-specific */ }
+}
+```
+
+OCPI endpoints use the OCPI error envelope:
+
+```json
+{
+  "status_code": 2001,
+  "status_message": "Invalid or missing parameters",
+  "timestamp": "2026-05-22T08:30:00.000Z"
+}
+```
+
+:::info Stub page
+Full content + status code catalogue arriving as part of the docs build-out.
+:::
+

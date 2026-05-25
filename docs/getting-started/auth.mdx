@@ -1,0 +1,23 @@
+---
+title: Authentication
+description: "How to authenticate with the hub: OCPI tokens, partner JWT, admin keys."
+---
+
+# Authentication
+
+The hub uses three distinct authentication mechanisms depending on which
+surface you're calling.
+
+| Surface | Auth method | Header |
+|---|---|---|
+| `/ocpi/2.2.1/*` | OCPI Token C (Bearer) | `Authorization: Token <token_c>` |
+| `/portal/v1/*` | Partner-user JWT (HS256) | `Authorization: Bearer <jwt>` |
+| `/admin/*` | Admin user JWT or pre-shared API key | `Authorization: Bearer <jwt>` or `X-Admin-Key: ...` |
+
+The handshake to obtain a Token C is documented under
+[For CPOs & CSMS → OCPI Integration](/ev-charging/charging-software/ocpi-integration).
+
+:::info Stub page
+Full content arriving as part of the docs build-out.
+:::
+

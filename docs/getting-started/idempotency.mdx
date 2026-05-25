@@ -1,0 +1,15 @@
+---
+title: Idempotency
+description: "Safe retries for write operations via idempotency keys."
+---
+
+# Idempotency
+
+Write endpoints accept an `Idempotency-Key` header. If the same key is
+seen within 24h with an identical body, the original response is replayed.
+Different bodies under the same key return `409 Conflict`.
+
+:::info Stub page
+Full content arriving as part of the docs build-out.
+:::
+

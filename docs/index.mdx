@@ -1,0 +1,74 @@
+---
+title: NetworkCore Docs
+description: "OCPI 2.2.1 hub + financial clearing platform — developer docs for partners integrating with NetworkCore."
+slug: /
+sidebar_position: 0
+hide_table_of_contents: true
+---
+
+# Welcome to NetworkCore
+
+The NetworkCore hub connects **Charge Point Operators**, **Charging Station Management
+Systems**, and **Distribution Partners** through a single OCPI 2.2.1 implementation —
+plus the financial clearing, settlement, and chargeback infrastructure that the
+underlying OCPI spec deliberately leaves out.
+
+These docs are for **developers building against the hub**: integrating their CPO
+or CSMS software, embedding NetworkCore into a mobility app, wiring an accounting
+system to invoice and settlement feeds, or shipping a roaming-aware driver
+experience.
+
+## Pick your path
+
+<div className="role-cards">
+
+### 🔌 For CPOs & CSMS
+[**Charging Software Integration →**](/ev-charging/charging-software)
+
+You operate the chargers — either directly as a CPO or as a CSMS serving multiple
+CPOs. Push locations, sessions, CDRs, and tariffs into the hub; receive cleared
+funds via SPEI / SEPA / local rails.
+
+---
+
+### 🚗 For Distribution Partners
+[**DP Integration →**](/ev-charging/distribution-partners)
+
+You bring drivers — mobility app, fleet platform, payment wallet, OEM dashboard.
+Pull the location catalogue, issue driver tokens, start sessions remotely, post
+risk fingerprints, consume auth-hint webhooks.
+
+---
+
+### 💰 For Accounting & Finance
+[**Accounting Integration →**](/ev-charging/accounting)
+
+You handle the books — Xero, QuickBooks, NetSuite, SAP, in-house ERP. Pull
+invoices, settlement reports, reconciliation feeds.
+
+</div>
+
+## Concepts first, vertical second
+
+NetworkCore is built as a general clearing + settlement platform. Today it ships
+the EV-charging vertical end to end via OCPI 2.2.1 — but the platform layer
+(parties, sessions, clearing, settlement, risk, webhooks) is vertical-free.
+
+If you're new, start with [Core Concepts](/getting-started/concepts) before
+diving into a specific role.
+
+## What's in here
+
+- **[Getting Started](/getting-started)** — concepts, auth methods, sandbox, common patterns (errors, pagination, idempotency)
+- **[EV Charging](/ev-charging)** — the OCPI implementation + role-specific guides
+- **[API Reference](/api-reference/)** — auto-generated reference for every public endpoint
+- **[Webhooks](/webhooks)** — what events you can subscribe to, signature verification, retry semantics
+- **[Guides & Recipes](/guides)** — playbooks for common integration scenarios
+- **[Sandbox](/sandbox)** — test credentials, Postman collection, event simulator
+- **[Changelog](/changelog)** — dated entries of API additions + breaking changes
+
+## Need help?
+
+- Open an issue on [GitHub](https://github.com/NetworkCoreAG/networkcore-docs/issues) if something here is wrong or unclear
+- Email [partner@networkcore.org](mailto:partner@networkcore.org) for integration support
+- Sign in to the [Partner Portal](https://hub.networkcore.org/partner/ui/) for your account-specific configuration

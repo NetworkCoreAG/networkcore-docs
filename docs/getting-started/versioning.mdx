@@ -1,0 +1,18 @@
+---
+title: Versioning
+description: "How we evolve the API without breaking your integration."
+---
+
+# Versioning
+
+- **OCPI**: versioned at the path (`/ocpi/2.2.1/...`). New OCPI versions land beside, never replacing.
+- **Hub APIs** (`/portal/v1/*`, `/dp/v1/*`): URL-versioned. v2 sits beside v1 for at least 6 months before v1 is retired.
+- **Webhooks**: schema versioned in the event envelope (`schema_version` field). Old payload shapes stay valid for 12 months after a new schema_version ships.
+
+We publish breaking changes in the [Changelog](/changelog) **at least 90 days
+before** they take effect.
+
+:::info Stub page
+Full content arriving as part of the docs build-out.
+:::
+
