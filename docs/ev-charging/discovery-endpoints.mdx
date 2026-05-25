@@ -1,0 +1,101 @@
+---
+title: OCPI discovery endpoints
+description: "How OCPI clients find what versions + modules this hub exposes — /ocpi/versions and /ocpi/{version}/details."
+sidebar_position: 0
+---
+
+# OCPI discovery endpoints
+
+Every OCPI integration starts with two discovery calls — both made with
+your initial **Token A**. These are the only two endpoints the hub exposes
+that don't require a fully-handshaken Token C.
+
+## `GET /ocpi/versions`
+
+Returns the list of OCPI versions this hub supports.
+
+```http
+GET https://hub.networkcore.org/ocpi/versions
+Authorization: Token <Token A>
+Accept: application/json
+```
+
+**Response** — `HTTP 200`:
+
+```json
+{
+  "status_code": 1000,
+  "data": [
+    {
+      "version": "2.2.1",
+      "url": "https://hub.networkcore.org/ocpi/2.2.1/details"
+    }
+  ],
+  "timestamp": "2026-05-25T13:00:00.000Z"
+}
+```
+
+Today the hub supports OCPI 2.2.1 only. When OCPI 2.3 lands it will appear
+in the same response alongside 2.2.1 — additive, never replacing.
+
+:::info Browser visitors
+Visiting `/ocpi/versions` in a browser (Accept: text/html) redirects to
+this docs page. OCPI clients sending `Accept: application/json` always
+get the JSON envelope above.
+:::
+
+## `GET /ocpi/{version}/details`
+
+Returns the endpoint catalogue for a given version — which modules the hub
+implements, their roles (sender / receiver), and their URLs.
+
+```http
+GET https://hub.networkcore.org/ocpi/2.2.1/details
+Authorization: Token <Token A>
+Accept: application/json
+```
+
+**Response** — `HTTP 200`:
+
+```json
+{
+  "status_code": 1000,
+  "data": {
+    "version": "2.2.1",
+    "endpoints": [
+      { "identifier": "credentials", "role": "RECEIVER", "url": "https://hub.networkcore.org/ocpi/2.2.1/credentials" },
+      { "identifier": "locations",   "role": "RECEIVER", "url": "https://hub.networkcore.org/ocpi/2.2.1/cpo/locations" },
+      { "identifier": "locations",   "role": "SENDER",   "url": "https://hub.networkcore.org/ocpi/2.2.1/emsp/locations" },
+      { "identifier": "tariffs",     "role": "RECEIVER", "url": "https://hub.networkcore.org/ocpi/2.2.1/cpo/tariffs" },
+      { "identifier": "tariffs",     "role": "SENDER",   "url": "https://hub.networkcore.org/ocpi/2.2.1/emsp/tariffs" },
+      { "identifier": "tokens",      "role": "SENDER",   "url": "https://hub.networkcore.org/ocpi/2.2.1/cpo/tokens" },
+      { "identifier": "tokens",      "role": "RECEIVER", "url": "https://hub.networkcore.org/ocpi/2.2.1/emsp/tokens" },
+      { "identifier": "sessions",    "role": "RECEIVER", "url": "https://hub.networkcore.org/ocpi/2.2.1/cpo/sessions" },
+      { "identifier": "sessions",    "role": "SENDER",   "url": "https://hub.networkcore.org/ocpi/2.2.1/emsp/sessions" },
+      { "identifier": "cdrs",        "role": "RECEIVER", "url": "https://hub.networkcore.org/ocpi/2.2.1/cpo/cdrs" },
+      { "identifier": "cdrs",        "role": "SENDER",   "url": "https://hub.networkcore.org/ocpi/2.2.1/emsp/cdrs" },
+      { "identifier": "commands",    "role": "SENDER",   "url": "https://hub.networkcore.org/ocpi/2.2.1/cpo/commands" },
+      { "identifier": "commands",    "role": "RECEIVER", "url": "https://hub.networkcore.org/ocpi/2.2.1/emsp/commands" }
+    ]
+  },
+  "timestamp": "2026-05-25T13:00:00.000Z"
+}
+```
+
+## Role semantics
+
+`RECEIVER` means the **hub** receives data at that URL — i.e. you PUT/POST
+to it. `SENDER` means the hub serves data at that URL — i.e. you GET from it.
+
+- **`cpo/*` paths** are where CPO-role parties PUT data (locations, sessions,
+  CDRs, tariffs) or where DPs send commands (start/stop) for routing.
+- **`emsp/*` paths** are where eMSP-role parties PUT data (tokens) or where
+  the hub serves CPO-side data back to DPs (locations, sessions, CDRs as
+  read-only).
+
+Same module name can appear twice with different roles — that's normal.
+
+## The full handshake
+
+These two discovery calls are step 2 and 3 of the OCPI handshake. The
+full step-by-step is in [OCPI Integration → Handshake](/ev-charging/charging-software/ocpi-integration#3-handshake-registration).

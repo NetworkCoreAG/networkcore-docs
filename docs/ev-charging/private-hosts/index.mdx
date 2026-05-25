@@ -1,0 +1,107 @@
+---
+title: For Private Hosts
+description: "Hotels, retail, parking, offices, residential buildings — businesses that own EV chargers as a secondary part of operations and want to monetise idle capacity."
+sidebar_position: 4
+---
+
+# For Private Hosts
+
+A Private Host is any business that owns one or more EV chargers as a
+secondary part of its operations: hotels, retail centres, offices, parking
+operators, hospitals, universities, fleet depots, mixed-use developments.
+The chargers exist to serve guests, customers, tenants or employees — but
+most of the time they sit idle.
+
+NetworkCore turns that idle capacity into incremental revenue without
+changing how the chargers operate today. Your hardware stays. Your CPMS
+stays. Your direct retail flow stays. NetworkCore runs alongside as an
+additive demand channel and routes paying drivers from OEM apps, fleet
+platforms, wallets, and other Distribution Partners to your existing plugs.
+
+## What makes Private Hosts different from CPOs
+
+Operationally, almost nothing changes for you:
+
+| Concern | A CPO | A Private Host |
+|---|---|---|
+| Primary business | Running chargers | Running a hotel / retail / office, with chargers as a side service |
+| Hardware ownership | Yours | Yours |
+| CPMS in use | Yours | Yours (or none — Ampeco / Monta / Wallbox / ChargePoint, etc.) |
+| Direct retail flow | Yours, untouched by NetworkCore | Yours, untouched by NetworkCore |
+| OCPI integration | Required | Required |
+| Settlement | Same SPEI / SEPA / local rails | Same — same protections |
+| Revenue model | Public price - small network fee on incremental sessions | Same |
+
+Architecturally you are a CPO from the hub's perspective — same OCPI
+modules, same settlement infrastructure. The distinction is commercial,
+not technical: a Private Host's signup goes through a different conversation
+with the NetworkCore commercial team, and the fee model applies only to
+incremental sessions routed via the network.
+
+## How you'll integrate
+
+Same OCPI surface as a single CPO. See:
+
+- **[OCPI Integration](/ev-charging/charging-software/ocpi-integration)** — the full handshake + module reference
+- **[Single CPO setup](/ev-charging/charging-software/single-cpo-setup)** — the onboarding checklist (applies identically to a Private Host)
+- **[Tariffs](/ev-charging/charging-software/tariffs)** — pricing rules
+- **[Settlement & payouts](/ev-charging/charging-software/settlement)** — how the hub pays you
+
+The only Host-specific page is signup:
+
+## Signing up
+
+The marketing-site form at [networkcore.org/private-hosts](https://www.networkcore.org/private-hosts)
+captures the basics. Or sign up directly via the partner hub:
+
+[**hub.networkcore.org/partner/signup/host**](https://hub.networkcore.org/partner/signup/host)
+
+What we ask for:
+
+| Field | Required? | What it tells us |
+|---|---|---|
+| Full name | ✓ | Who to contact |
+| Email | ✓ | How to reach you |
+| Site type | ✓ | Hotel / Retail / Office or business park / Restaurant / Residential building / Parking / Other |
+| Number of chargers installed | ✓ | 1 / 2–5 / 6–20 / 20+ / Planning to install |
+| City / region / country | optional | Where you operate |
+| CPMS / management system in use | optional | None / Ampeco / Monta / Wallbox / ChargePoint / Other / Not sure |
+| Average current utilisation | optional | Mostly empty / Some use / Busy / Don't know |
+
+The "Planning to install" option in charger count means **we want to talk
+even before you've installed hardware** — Private Hosts evaluating the
+unit economics of installing chargers often want to know what incremental
+demand they could expect before they commit. That conversation is
+worthwhile.
+
+## Common questions
+
+**How is this different from being a CPO?**
+Operationally, almost nothing. Your hardware stays. Your CPMS stays. Your
+direct retail flow stays. NetworkCore runs alongside as an additive
+demand channel.
+
+**How much can I earn? What's the fee model?**
+You earn the public price set for your chargers, minus a small network
+fee that applies only to incremental sessions NetworkCore routes to you.
+No setup fees, no monthly fees.
+
+**What happens to my existing direct customers?**
+Nothing. NetworkCore only earns on incremental sessions we route to you.
+Drivers already using your direct flow remain yours. We don't market to
+or capture customers you already have — the No Cannibalisation Guarantee
+is built into the model.
+
+**Do I need to switch hardware or CPMS?**
+No. NetworkCore is hardware-neutral and CPMS-agnostic. The OCPI
+integration is the only requirement.
+
+**What about chargers I'm still planning to install?**
+Tell us — we can pre-onboard you so the moment hardware is live, demand
+is too. The "Planning to install" option in the signup form flags this.
+
+## Next step
+
+Sign up at [hub.networkcore.org/partner/signup/host](https://hub.networkcore.org/partner/signup/host)
+or email [partner@networkcore.org](mailto:partner@networkcore.org). We
+typically respond within 48 hours.

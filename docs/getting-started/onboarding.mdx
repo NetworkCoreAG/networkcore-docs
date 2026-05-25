@@ -1,0 +1,107 @@
+---
+title: Onboarding journey
+description: "End-to-end onboarding journey for CPOs / CSMS, Distribution Partners, and Private Hosts."
+sidebar_position: 4
+---
+
+# Onboarding journey
+
+Whatever role you're integrating in, the journey looks roughly the same:
+signup → sandbox handshake → sandbox flows → production handshake → live.
+Where it differs is in *what you push or pull* once you're handshaked,
+and how the financial layer is configured per role.
+
+## Pick your starting point
+
+| Role | Start here |
+|---|---|
+| **CPO** (you operate one charging brand) | [Single CPO setup](/ev-charging/charging-software/single-cpo-setup) |
+| **CSMS** (you operate software for multiple CPOs) | [Multi-CPO / CSMS setup](/ev-charging/charging-software/multi-cpo-csms-setup) |
+| **Distribution Partner** (mobility app, fleet, payment, OEM) | [DP integration](/ev-charging/distribution-partners) |
+| **Private Host** (hotel, retail, parking with idle chargers) | [Private Hosts](/ev-charging/private-hosts) |
+| **Accounting / ERP** | [Accounting integration](/ev-charging/accounting) |
+
+## What's the same regardless of role
+
+1. **Self-service signup** at [hub.networkcore.org/partner/signup](https://hub.networkcore.org/partner/signup) — captures the basics, lands in NetworkCore's CRM
+2. **Sandbox credentials** issued by NetworkCore ops (typically within 48 hours of signup)
+3. **OCPI handshake** in sandbox to get a long-lived Token C
+4. **Sandbox integration testing** — push or pull a few sessions, confirm flow end-to-end
+5. **Finance config** entered via the partner portal: banking (CLABE / IBAN / etc.), tax IDs, descriptor template
+6. **Production Token A** issued
+7. **Production handshake** → live
+
+Total elapsed time, signup → first live session, is usually 1–2 weeks for
+CPOs / CSMS / Hosts, and 1 week for DPs (no banking config needed on the
+DP side — your revenue lands in your PSP, not via SPEI/SEPA from us).
+
+## Self-service vs hand-held
+
+For CPOs / CSMS who already have OCPI client implementations, onboarding is
+largely self-service: read the [OCPI Integration guide](/ev-charging/charging-software/ocpi-integration),
+hit the sandbox, debug, ship.
+
+For DPs and Private Hosts, we run a hand-held first integration —
+NetworkCore commercial + technical staff stay on a shared Slack with you
+until first live session settles cleanly. This is included; you don't pay
+for it.
+
+## What we ask for during onboarding
+
+Per role, here's what the finance / legal config requires (entered via the
+partner portal at [hub.networkcore.org/partner/ui](https://hub.networkcore.org/partner/ui/)):
+
+### CPOs & CSMS
+
+- **OCPI identity**: `country_code` (ISO-2) + `party_id` (3-char). One per
+  CPO. CSMS partners can register many.
+- **Legal entity**: company name, registered address, tax ID (RFC in
+  Mexico, VAT in EU, EIN in US, etc.)
+- **Settlement banking**: CLABE for Mexico, IBAN for EU/CH, ACH details
+  for US. Currency per account.
+- **Merchant descriptor template**: how your brand should appear on the
+  driver's bank statement (mechanism #06 — public descriptor clarity)
+- **CSD certificate** (Mexico only): required before CFDI invoicing can
+  begin. Can be added after handshake; we'll generate invoices the
+  moment the certificate is on file.
+
+### Distribution Partners
+
+- **OCPI identity**: same shape — `(country_code, party_id)` — but as an
+  eMSP role
+- **Legal entity**: company name + tax ID for revenue-share invoice
+  receiving
+- **Webhook endpoints**: where the hub POSTs `session.settled`,
+  `chargeback.opened`, etc.
+- **Risk fingerprinting** (recommended): your backend posts
+  `device_hash` / `account_hash` / `vehicle_hash` for each session — the
+  hub correlates across the network for fraud defence. See
+  [Risk fingerprints](/ev-charging/distribution-partners/risk-fingerprints).
+
+### Private Hosts
+
+Same as CPOs above. The only commercial difference is the fee model:
+network fee applies only to incremental sessions NetworkCore routes to
+you (your existing direct customers stay outside the model).
+
+### Accounting / ERP integrations
+
+No separate onboarding — accounting access piggybacks on the parent
+party's account. Your finance team gets read-only API access via the same
+partner JWT, scoped to invoice / settlement / reconciliation endpoints.
+
+## Where things can go wrong
+
+| Symptom | Most likely cause |
+|---|---|
+| Token A handshake returns `3001 Unable to use the client's API` | Hub tried to call back to your `url` during handshake and your endpoint wasn't reachable. Check your firewall / WAF / OCPI receiver is up. |
+| CDR posts return `2003 Unknown location` | You pushed a CDR referencing a `location_id` the hub doesn't know. Push the Location first. |
+| CDR posts return `2004 Unknown token` | The token UID in the CDR has never been seen by the hub. eMSP must PUT the token first. |
+| Settlement isn't landing | Check the partner portal Wallet page for the rail config. Likely a missing CLABE / IBAN. |
+| `PAN_LEAK` BLOCK flag raised on your party | Your payload contained 12–19 consecutive Luhn-valid digits (mechanism #13 — Network tokens, no PAN). Send hashes or tokens only, never raw PAN. |
+
+## Need help?
+
+Email [partner@networkcore.org](mailto:partner@networkcore.org) at any
+point. We typically respond within 48 hours, and during active integrations
+we're typically same-day responsive.
