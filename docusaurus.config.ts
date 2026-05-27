@@ -38,10 +38,16 @@ const config: Config = {
   // Migrate the markdown-link config to the new nested form (Docusaurus 3.7+
   // moved this out of the top-level config; v4 will hard-remove the old shape).
   markdown: {
+    // Mermaid renders sequence + flow diagrams inline. Used by the
+    // /reference-architecture page (handshake, session lifecycle, settlement,
+    // dispute).
+    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: 'warn',
     },
   },
+  // Docusaurus' built-in Mermaid theme module — needed alongside markdown.mermaid.
+  themes: ['@docusaurus/theme-mermaid'],
 
   i18n: { defaultLocale: 'en', locales: ['en'] },
 
