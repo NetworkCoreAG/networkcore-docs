@@ -52,6 +52,12 @@ const sidebars: SidebarsConfig = {
       items: [
         // OCPI protocol discovery — applies to CPOs, CSMS, DPs, Hosts alike
         'ev-charging/discovery-endpoints',
+        // Reference architecture — Mermaid sequence diagrams for the four
+        // canonical flows (handshake, session lifecycle, settlement, dispute).
+        'ev-charging/reference-architecture',
+        // Interoperability statement — exactly what we implement of OCPI 2.2.1
+        // (modules, roles, status codes, rate limits, extensions).
+        'ev-charging/interoperability',
         // Charging software section — CPOs + CSMS share the same OCPI surface
         {
           type:  'category',
