@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'getting-started/concepts',
         'getting-started/onboarding',
+        'getting-started/account-security',
         'getting-started/auth',
         'getting-started/sandbox',
         'getting-started/errors',
