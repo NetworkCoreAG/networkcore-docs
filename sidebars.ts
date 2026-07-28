@@ -92,6 +92,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'ev-charging/distribution-partners/locations',
             'ev-charging/distribution-partners/sessions',
+            'ev-charging/distribution-partners/tariffs',
             'ev-charging/distribution-partners/risk-fingerprints',
             'ev-charging/distribution-partners/threeds-recommendation',
             'ev-charging/distribution-partners/driver-api',

@@ -27,12 +27,13 @@ rotation.
 
 1. [**Get your API key**](https://hub.networkcore.org/partner/ui/) — issued in the partner portal Integrations tab
 2. [**Browse locations**](/ev-charging/distribution-partners/locations) — power your in-app map with the location catalogue
-3. [**Start & manage sessions**](/ev-charging/distribution-partners/sessions) — start, monitor, and stop charging sessions
-4. [**Risk fingerprints**](/ev-charging/distribution-partners/risk-fingerprints) — POST device/account hashes for fraud defence
-5. [**3DS recommendation**](/ev-charging/distribution-partners/threeds-recommendation) — auth-hint webhook for your PSP
-6. [**Driver API**](/ev-charging/distribution-partners/driver-api) — embedded driver experience (history, invoices, push notifications)
-7. [**Refunds & disputes**](/ev-charging/distribution-partners/refunds-disputes)
-8. [**Reconciliation**](/ev-charging/distribution-partners/reconciliation) — match sessions against your books
+3. [**Check tariffs**](/ev-charging/distribution-partners/tariffs) — fetch pricing to show drivers before they charge
+4. [**Start & manage sessions**](/ev-charging/distribution-partners/sessions) — start, monitor, and stop charging sessions
+5. [**Risk fingerprints**](/ev-charging/distribution-partners/risk-fingerprints) — POST device/account hashes for fraud defence
+6. [**3DS recommendation**](/ev-charging/distribution-partners/threeds-recommendation) — auth-hint webhook for your PSP
+7. [**Driver API**](/ev-charging/distribution-partners/driver-api) — embedded driver experience (history, invoices, push notifications)
+8. [**Refunds & disputes**](/ev-charging/distribution-partners/refunds-disputes)
+9. [**Reconciliation**](/ev-charging/distribution-partners/reconciliation) — match sessions against your books
 
 ## What NetworkCore handles for you
 
@@ -41,4 +42,4 @@ You don't need to implement or understand OCPI. The hub manages:
 - **Protocol negotiation** — OCPI 2.2.1 handshakes and credential exchanges with CPOs
 - **Driver authorization tokens** — token issuance and propagation to the roaming network
 - **CDR management** — charge detail records are processed internally; you get a `total_cost` on completed sessions
-- **Tariff resolution** — pricing is computed by the hub from the CPO's published tariffs
+- **Tariff resolution** — tariffs are available for display via the API, but the hub handles the actual price computation and locking at session start

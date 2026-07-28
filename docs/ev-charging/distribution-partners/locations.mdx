@@ -47,10 +47,11 @@ X-Request-ID: bf92c8d4-7f83-4c5e-c091-5c0e3f6e7e84
           "status": "AVAILABLE",
           "connectors": [
             {
-              "id":       "1",
-              "standard": "CCS2",
-              "power_kw": 50,
-              "format":   "CABLE"
+              "id":        "1",
+              "standard":  "CCS2",
+              "power_kw":  50,
+              "format":    "CABLE",
+              "tariff_id": "TARIFF-DEFAULT"
             }
           ]
         }
@@ -92,10 +93,11 @@ Returns the same location object, unwrapped:
         "status": "AVAILABLE",
         "connectors": [
           {
-            "id":       "1",
-            "standard": "CCS2",
-            "power_kw": 50,
-            "format":   "CABLE"
+            "id":        "1",
+            "standard":  "CCS2",
+            "power_kw":  50,
+            "format":    "CABLE",
+            "tariff_id": "TARIFF-DEFAULT"
           }
         ]
       }
@@ -145,3 +147,4 @@ call picks up from where you left off.
 | `standard` | string | `CCS2` &#124; `CHADEMO` &#124; `TYPE_2` &#124; `J1772` &#124; `TESLA_S` &#124; `NACS` |
 | `power_kw` | number | Maximum power output in kilowatts |
 | `format` | string | `CABLE` &#124; `SOCKET` |
+| `tariff_id` | string | Tariff that applies to this connector; use to fetch pricing via [`/dp/v1/tariffs/{id}`](/ev-charging/distribution-partners/tariffs) |
