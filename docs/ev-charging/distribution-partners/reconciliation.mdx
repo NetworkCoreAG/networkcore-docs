@@ -1,76 +1,61 @@
 ---
 title: Reconciliation
-description: "Match hub-side session + CDR records against your books."
+description: "Match hub-side session records against your books."
 sidebar_position: 9
 ---
 
 # Reconciliation
 
-Sessions and CDRs are the two artefacts you reconcile against. Sessions are
-live + mutable; CDRs are immutable + final.
+Completed sessions are the primary artefact you reconcile against. Each
+completed session includes `total_cost` — the final amount for the charging
+session.
 
-## Pull sessions (live monitoring)
+## Pull completed sessions
 
-Poll this every 30–60 seconds while your drivers are charging to drive in-app
-status (kWh delivered, time elapsed). Run it once daily as a reconciliation
-safety net to catch any session updates your real-time poll might have missed.
+Poll completed sessions to reconcile against your books. Use `updated_since`
+to fetch only records that changed since your last check.
 
 ```http
-GET /ocpi/2.2.1/emsp/sessions?date_from=2026-04-29T00:00:00Z&limit=100
-Authorization: Token TOKEN_C
+GET /dp/v1/sessions?status=COMPLETED&updated_since=2026-04-29T00:00:00Z&limit=100
+Authorization: Bearer <your_dp_api_key>
 X-Request-ID: c0a3d9e5-8094-4d6f-d1a2-6d1f4a7f8f95
-X-Correlation-ID: c0a3d9e5-8094-4d6f-d1a2-6d1f4a7f8f95
 ```
 
 **Response** — `HTTP 200`:
 
 ```json
 {
-  "status_code": 1000,
   "data": [
     {
-      "id":              "S1234",
-      "country_code":    "MX",
-      "party_id":        "CPX",
-      "start_date_time": "2026-04-29T10:15:00Z",
-      "kwh":             12.4,
-      "cdr_token":       { /* token object */ },
-      "auth_method":     "AUTH_REQUEST",
-      "location_id":     "LOC001",
-      "evse_uid":        "LOC001-EVSE-1",
-      "connector_id":    "1",
-      "currency":        "MXN",
-      "status":          "ACTIVE",
-      "last_updated":    "2026-04-29T10:33:00Z"
+      "id":               "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "reference":        "your-order-123",
+      "status":           "COMPLETED",
+      "location_id":      "LOC001",
+      "charge_point_id":  "LOC001-CP-1",
+      "connector_id":     "1",
+      "start_time":       "2026-04-29T10:15:00Z",
+      "end_time":         "2026-04-29T11:00:00Z",
+      "kwh":              25.0,
+      "currency":         "MXN",
+      "total_cost":       188.50,
+      "created_at":       "2026-04-29T10:14:50Z",
+      "updated_at":       "2026-04-29T11:00:01Z"
     }
   ],
-  "timestamp": "2026-04-29T10:33:01Z"
+  "total_count": 1,
+  "limit": 100,
+  "offset": 0
 }
 ```
 
-`X-Total-Count` header tells you the total available.
-
-## Pull CDRs (final billing records)
-
-CDRs are the final, immutable billing records — one per completed session.
-Use them to invoice your drivers and reconcile against the financial
-settlements the hub posts back via the `session.settled` webhook.
-
-```http
-GET /ocpi/2.2.1/emsp/cdrs?date_from=2026-04-29T00:00:00Z&limit=100
-Authorization: Token TOKEN_C
-X-Request-ID: d1b4e0f6-91a5-4e80-e2b3-7e2a5b80909a
-X-Correlation-ID: d1b4e0f6-91a5-4e80-e2b3-7e2a5b80909a
-```
-
-Or fetch a single CDR by ID:
-
-```http
-GET /ocpi/2.2.1/emsp/cdrs/MX/CPX/CDR-S1234
-```
+:::info No separate CDR pull needed
+The session object includes `total_cost` once the session reaches `COMPLETED`
+status. There is no separate CDR endpoint — the hub resolves charge detail
+records internally and surfaces the final cost directly on the session.
+:::
 
 ## Recommended reconciliation pattern
 
 1. **Real-time**: subscribe to the [`session.settled` webhook](/webhooks/events) — every settled session POSTs the cleared amounts to you the moment they're finalised
-2. **Daily batch**: pull `/emsp/cdrs?date_from=<24h ago>` and reconcile against your books — catches any webhook deliveries that failed
-3. **Weekly safety net**: pull `/emsp/cdrs?date_from=<7 days ago>` with no time bound, compare counts against your local store. Any drift triggers a re-import of just the missing IDs
+2. **Daily batch**: pull `GET /dp/v1/sessions?status=COMPLETED&updated_since=<24h ago>` and reconcile against your books — catches any webhook deliveries that failed
+3. **Weekly safety net**: pull `GET /dp/v1/sessions?status=COMPLETED&updated_since=<7 days ago>`, compare counts against your local store. Any drift triggers a re-import of just the missing IDs

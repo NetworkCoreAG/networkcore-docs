@@ -1,58 +1,147 @@
 ---
-title: Pulling locations
-description: "Initial catalogue sync + incremental updates of the OCPI location list."
-sidebar_position: 2
+title: Locations
+description: "Browse and sync the charging location catalogue via /dp/v1/locations."
+sidebar_position: 1
 ---
 
-# Pulling locations
+# Locations
 
-On first integration, do a full pull so your in-app map shows every CPO
-station. After that, use `date_from` on subsequent calls to fetch only changed
-locations — the hub updates `last_updated` on every PATCH.
+On first integration, do a full pull so your in-app map shows every charging
+station. After that, use `updated_since` on subsequent calls to fetch only
+changed locations.
 
-## Initial sync
+## List locations
 
 ```http
-GET /ocpi/2.2.1/emsp/locations?limit=100&offset=0&date_from=2026-01-01T00:00:00Z
-Authorization: Token TOKEN_C
+GET /dp/v1/locations?limit=100&offset=0
+Authorization: Bearer <your_dp_api_key>
 X-Request-ID: bf92c8d4-7f83-4c5e-c091-5c0e3f6e7e84
-X-Correlation-ID: bf92c8d4-7f83-4c5e-c091-5c0e3f6e7e84
 ```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `limit` | integer | 50 | Page size (max 1000) |
+| `offset` | integer | 0 | Number of records to skip |
+| `updated_since` | ISO 8601 | — | Only locations updated after this timestamp |
+| `country` | string | — | Filter by country (ISO 3166-1 alpha-2, e.g. `MX`) |
 
 **Response** — `HTTP 200`:
 
 ```json
 {
-  "status_code": 1000,
   "data": [
-    { /* full Location object */ }
+    {
+      "id":            "LOC001",
+      "name":          "Example CPO Site #1",
+      "address":       "Av. Example 123",
+      "city":          "Mexico City",
+      "postal_code":   "06600",
+      "country":       "MX",
+      "coordinates":   { "latitude": 19.4326, "longitude": -99.1900 },
+      "operator_name": "Example CPO",
+      "open_hours":    null,
+      "last_updated":  "2026-04-29T12:00:00Z",
+      "charge_points": [
+        {
+          "id":     "LOC001-CP-1",
+          "status": "AVAILABLE",
+          "connectors": [
+            {
+              "id":       "1",
+              "standard": "CCS2",
+              "power_kw": 50,
+              "format":   "CABLE"
+            }
+          ]
+        }
+      ]
+    }
   ],
-  "timestamp": "2026-04-29T10:01:00Z"
+  "total_count": 142,
+  "limit": 100,
+  "offset": 0
 }
 ```
 
-The response also includes an `X-Total-Count` header with the full result-set size.
-
-## Pagination
-
-Paginate by incrementing `offset` until `data.length < limit`. The
-`X-Total-Count` response header tells you the full result-set size upfront so
-you can plan the loop. `limit` is capped server-side at 1000.
-
-## Incremental updates
-
-After your initial sync, store the timestamp and use `date_from` to fetch
-only locations that changed:
+## Get a single location
 
 ```http
-GET /ocpi/2.2.1/emsp/locations?date_from=2026-04-29T00:00:00Z&limit=100
+GET /dp/v1/locations/LOC001
+Authorization: Bearer <your_dp_api_key>
+X-Request-ID: c1a4b2d5-9184-4e7f-b2c3-7d2e5a81a0ab
 ```
 
-A practical pattern: run an incremental pull every 5–15 minutes, and a
-full pull (no `date_from`) once a week as a safety net for missed updates.
+Returns the same location object, unwrapped:
 
-## Location shape
+```json
+{
+  "data": {
+    "id":            "LOC001",
+    "name":          "Example CPO Site #1",
+    "address":       "Av. Example 123",
+    "city":          "Mexico City",
+    "postal_code":   "06600",
+    "country":       "MX",
+    "coordinates":   { "latitude": 19.4326, "longitude": -99.1900 },
+    "operator_name": "Example CPO",
+    "open_hours":    null,
+    "last_updated":  "2026-04-29T12:00:00Z",
+    "charge_points": [
+      {
+        "id":     "LOC001-CP-1",
+        "status": "AVAILABLE",
+        "connectors": [
+          {
+            "id":       "1",
+            "standard": "CCS2",
+            "power_kw": 50,
+            "format":   "CABLE"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-The objects returned mirror the OCPI 2.2.1 Location spec — see the [CPO
-push example](/ev-charging/charging-software/ocpi-integration#51-push-a-location)
-for the full structure including EVSEs + connectors.
+## Sync strategy
+
+1. **Initial full sync** — paginate through all locations with no `updated_since` filter
+2. **Incremental updates** — run every 5–15 minutes with `updated_since` set to your last sync timestamp
+3. **Weekly safety net** — do a full pull (no `updated_since`) once a week to catch any missed updates
+
+Store the `last_updated` timestamp from each sync run so your next incremental
+call picks up from where you left off.
+
+## Location schema
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique location identifier |
+| `name` | string | Human-readable station name |
+| `address` | string | Street address |
+| `city` | string | City |
+| `postal_code` | string | Postal / ZIP code |
+| `country` | string | ISO 3166-1 alpha-2 country code |
+| `coordinates` | object | `{ latitude, longitude }` (decimal degrees) |
+| `operator_name` | string | Name of the CPO operating this location |
+| `open_hours` | string &#124; null | Opening hours description; `null` means 24/7 |
+| `last_updated` | ISO 8601 | When the location was last modified |
+| `charge_points` | array | List of charge points at this location |
+
+## Charge point schema
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique charge point identifier within the location |
+| `status` | string | `AVAILABLE` &#124; `OCCUPIED` &#124; `OUT_OF_SERVICE` &#124; `UNKNOWN` |
+| `connectors` | array | List of connectors on this charge point |
+
+## Connector schema
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique connector identifier within the charge point |
+| `standard` | string | `CCS2` &#124; `CHADEMO` &#124; `TYPE_2` &#124; `J1772` &#124; `TESLA_S` &#124; `NACS` |
+| `power_kw` | number | Maximum power output in kilowatts |
+| `format` | string | `CABLE` &#124; `SOCKET` |

@@ -12,7 +12,7 @@ routes it to you (the CPO operating the EVSE) via your registered receiver
 endpoint. Your CSMS attempts to start the session and POSTs the asynchronous
 result back to the DP's `response_url`.
 
-See **[Distribution Partners → Remote start / stop](/ev-charging/distribution-partners/commands)**
+See **[Distribution Partners → Sessions](/ev-charging/distribution-partners/sessions)**
 for the DP-side worked example.
 
 ## Receive a command
@@ -67,7 +67,18 @@ Content-Type: application/json
 }
 ```
 
-Result values: see [Distribution Partners → Remote start / stop](/ev-charging/distribution-partners/commands#the-async-result).
+Result values:
+
+| `result` | Meaning |
+|---|---|
+| `ACCEPTED` | Session started successfully |
+| `REJECTED` | CPO refused (e.g. EVSE in error, unknown token) |
+| `EVSE_OCCUPIED` | Another driver already plugged in |
+| `EVSE_INOPERATIVE` | EVSE is faulted or unavailable |
+| `FAILED` | Command timed out or CPO returned an unexpected error |
+| `NOT_SUPPORTED` | CPO does not support remote start for this EVSE |
+| `TIMEOUT` | CPO did not respond within the `timeout` window |
+| `UNKNOWN_SESSION` | (for STOP_SESSION only) session_id not found |
 
 ## Other commands you'll receive
 
