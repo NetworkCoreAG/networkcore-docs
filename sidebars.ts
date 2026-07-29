@@ -90,10 +90,9 @@ const sidebars: SidebarsConfig = {
           label: 'For Distribution Partners',
           link:  { type: 'doc', id: 'ev-charging/distribution-partners/index' },
           items: [
-            'ev-charging/distribution-partners/handshake',
             'ev-charging/distribution-partners/locations',
-            'ev-charging/distribution-partners/tokens',
-            'ev-charging/distribution-partners/commands',
+            'ev-charging/distribution-partners/sessions',
+            'ev-charging/distribution-partners/tariffs',
             'ev-charging/distribution-partners/risk-fingerprints',
             'ev-charging/distribution-partners/threeds-recommendation',
             'ev-charging/distribution-partners/driver-api',

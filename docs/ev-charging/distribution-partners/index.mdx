@@ -1,24 +1,45 @@
 ---
 title: For Distribution Partners
-description: "Integration guide for mobility apps, fleet platforms, payment apps, and OEM dashboards pulling from the hub."
+description: "Integration guide for mobility apps, fleet platforms, payment apps, and OEM dashboards connecting to the hub."
 ---
 
 # For Distribution Partners
 
 You bring drivers — through a mobility app, fleet platform, payment wallet,
-OEM dashboard, or telematics system. The hub gives you access to a roaming
-network of CPOs under a single OCPI integration plus the auxiliary surface
-(risk, refunds, driver APIs) that real production deployments need.
+OEM dashboard, or telematics system. NetworkCore gives you a simple REST API
+to browse charging locations and start sessions across the entire roaming
+network. No protocol knowledge needed — the hub handles OCPI internally.
 
-## Start here
+## Authentication
 
-1. [**OCPI eMSP handshake**](/ev-charging/distribution-partners/handshake) — one-time setup
-2. [**Pulling the location catalogue**](/ev-charging/distribution-partners/locations) — your in-app map data
-3. [**Driver tokens**](/ev-charging/distribution-partners/tokens) — issuance + sync to the roaming network
-4. [**Remote start/stop**](/ev-charging/distribution-partners/commands) — kicking off sessions from your app
+All requests use an API key issued via the partner portal:
+
+```http
+Authorization: Bearer <your_dp_api_key>
+Content-Type: application/json
+X-Request-ID: <unique per request>
+```
+
+See [Authentication](/getting-started/auth) for details on key management and
+rotation.
+
+## Integration steps
+
+1. [**Get your API key**](https://hub.networkcore.org/partner/ui/) — issued in the partner portal Integrations tab
+2. [**Browse locations**](/ev-charging/distribution-partners/locations) — power your in-app map with the location catalogue
+3. [**Check tariffs**](/ev-charging/distribution-partners/tariffs) — fetch pricing to show drivers before they charge
+4. [**Start & manage sessions**](/ev-charging/distribution-partners/sessions) — start, monitor, and stop charging sessions
 5. [**Risk fingerprints**](/ev-charging/distribution-partners/risk-fingerprints) — POST device/account hashes for fraud defence
 6. [**3DS recommendation**](/ev-charging/distribution-partners/threeds-recommendation) — auth-hint webhook for your PSP
 7. [**Driver API**](/ev-charging/distribution-partners/driver-api) — embedded driver experience (history, invoices, push notifications)
 8. [**Refunds & disputes**](/ev-charging/distribution-partners/refunds-disputes)
-9. [**Reconciliation**](/ev-charging/distribution-partners/reconciliation)
+9. [**Reconciliation**](/ev-charging/distribution-partners/reconciliation) — match sessions against your books
 
+## What NetworkCore handles for you
+
+You don't need to implement or understand OCPI. The hub manages:
+
+- **Protocol negotiation** — OCPI 2.2.1 handshakes and credential exchanges with CPOs
+- **Driver authorization tokens** — token issuance and propagation to the roaming network
+- **CDR management** — charge detail records are processed internally; you get a `total_cost` on completed sessions
+- **Tariff resolution** — tariffs are available for display via the API, but the hub handles the actual price computation and locking at session start

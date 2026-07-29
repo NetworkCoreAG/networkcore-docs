@@ -77,6 +77,12 @@ sequenceDiagram
   H->>DP: Webhook session.settled (signed)
 ```
 
+:::info Distribution Partner API
+DPs don't interact with OCPI directly. From the DP side, starting a session
+is a single `POST /dp/v1/sessions` call — the hub translates to OCPI
+internally. See [Sessions](/ev-charging/distribution-partners/sessions).
+:::
+
 **Key invariants:**
 
 - **Tariff lock at start:** when the session begins, the hub snapshots the

@@ -1,0 +1,157 @@
+---
+title: Tariffs
+description: "Fetch tariffs to show drivers pricing before they start a session."
+sidebar_position: 3
+---
+
+# Tariffs
+
+Drivers want to see pricing before they plug in. The tariffs API gives you the
+current price for every connector in the location catalogue so you can display
+it in your app. Tariffs are read-only — CPOs publish them via OCPI and the hub
+exposes a simplified view for you.
+
+## List tariffs
+
+```http
+GET /dp/v1/tariffs?limit=50&offset=0
+Authorization: Bearer <your_dp_api_key>
+X-Request-ID: a3d8f2c1-5b74-4e90-b6d1-9c0e2f7a8b34
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `limit` | integer | 50 | Page size (max 1000) |
+| `offset` | integer | 0 | Number of records to skip |
+| `updated_since` | ISO 8601 | — | Only tariffs updated after this timestamp |
+
+**Response** — `HTTP 200`:
+
+```json
+{
+  "data": [
+    {
+      "id":           "TARIFF-DEFAULT",
+      "currency":     "MXN",
+      "elements": [
+        {
+          "components": [
+            { "type": "ENERGY", "price": 6.50, "unit": "kWh" }
+          ],
+          "restrictions": null
+        }
+      ],
+      "last_updated": "2026-04-29T08:00:00Z"
+    },
+    {
+      "id":           "TARIFF-PEAK",
+      "currency":     "MXN",
+      "elements": [
+        {
+          "components": [
+            { "type": "ENERGY", "price": 9.00, "unit": "kWh" },
+            { "type": "FLAT",   "price": 5.00, "unit": "session" }
+          ],
+          "restrictions": {
+            "start_time":   "08:00",
+            "end_time":     "22:00",
+            "day_of_week":  ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
+          }
+        }
+      ],
+      "last_updated": "2026-05-01T14:30:00Z"
+    }
+  ],
+  "total_count": 2,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+## Get a single tariff
+
+```http
+GET /dp/v1/tariffs/TARIFF-DEFAULT
+Authorization: Bearer <your_dp_api_key>
+X-Request-ID: b4e9a3d2-6c85-4f01-c7e2-0d1f3a8b9c45
+```
+
+**Response** — `HTTP 200`:
+
+```json
+{
+  "data": {
+    "id":           "TARIFF-DEFAULT",
+    "currency":     "MXN",
+    "elements": [
+      {
+        "components": [
+          { "type": "ENERGY", "price": 6.50, "unit": "kWh" }
+        ],
+        "restrictions": null
+      }
+    ],
+    "last_updated": "2026-04-29T08:00:00Z"
+  }
+}
+```
+
+## Tariff schema
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Unique tariff identifier |
+| `currency` | string | ISO 4217 currency code (e.g. `MXN`, `USD`) |
+| `elements` | array | List of tariff elements (each with components and optional restrictions) |
+| `last_updated` | ISO 8601 | When the tariff was last modified |
+
+## TariffElement schema
+
+| Field | Type | Description |
+|---|---|---|
+| `components` | array | Price components that make up this element |
+| `restrictions` | object &#124; null | Time/day restrictions for when this element applies; `null` means always applies |
+
+## PriceComponent types
+
+| Type | Unit | Description |
+|---|---|---|
+| `ENERGY` | kWh | Per-kilowatt-hour charge |
+| `TIME` | hour | Per-hour charge for the duration of the session |
+| `FLAT` | session | Fixed fee per session |
+| `PARKING_TIME` | hour | Per-hour idle fee after charging stops |
+
+Each component has three fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | string | One of `ENERGY`, `TIME`, `FLAT`, `PARKING_TIME` |
+| `price` | number | Price per unit in the tariff's currency |
+| `unit` | string | Human-readable unit: `kWh`, `hour`, or `session` |
+
+## Restrictions schema
+
+Restrictions narrow when a tariff element applies. If all restriction fields
+are `null`, the element applies at all times.
+
+| Field | Type | Description |
+|---|---|---|
+| `start_time` | string &#124; null | Start of the time window (`HH:MM`, 24-hour format) |
+| `end_time` | string &#124; null | End of the time window (`HH:MM`, 24-hour format) |
+| `day_of_week` | string[] &#124; null | Days when this element applies (e.g. `["MONDAY", "FRIDAY"]`) |
+
+## Tariff locking
+
+The tariff attached to a connector at the moment a session starts is the tariff
+that determines the price for that session. If a CPO updates a tariff while a
+session is in progress, the change does not affect the running session — only
+new sessions pick up the updated tariff.
+
+This means the price your driver sees before tapping "Start charging" is the
+price they will be charged.
+
+## Error responses
+
+| HTTP | Error code | Meaning |
+|---|---|---|
+| `404` | `TARIFF_NOT_FOUND` | No tariff with this ID exists |

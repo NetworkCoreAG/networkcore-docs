@@ -25,7 +25,7 @@ and how the financial layer is configured per role.
 
 1. **Self-service signup** at [hub.networkcore.org/partner/signup](https://hub.networkcore.org/partner/signup) — captures the basics, lands in NetworkCore's CRM
 2. **Sandbox credentials** issued by NetworkCore ops (typically within 48 hours of signup)
-3. **OCPI handshake** in sandbox to get a long-lived Token C
+3. **OCPI handshake** in sandbox (CPOs/CSMS) or **API key issuance** (DPs)
 4. **Sandbox integration testing** — push or pull a few sessions, confirm flow end-to-end
 5. **Finance config** entered via the partner portal: banking (CLABE / IBAN / etc.), tax IDs, descriptor template
 6. **Production Token A** issued
@@ -67,8 +67,7 @@ partner portal at [hub.networkcore.org/partner/ui](https://hub.networkcore.org/p
 
 ### Distribution Partners
 
-- **OCPI identity**: same shape — `(country_code, party_id)` — but as an
-  eMSP role
+- **API key**: issued via the partner portal Integrations tab
 - **Legal entity**: company name + tax ID for revenue-share invoice
   receiving
 - **Webhook endpoints**: where the hub POSTs `session.settled`,
